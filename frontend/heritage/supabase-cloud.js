@@ -1,3 +1,3 @@
-// Gestion du stockage privé Palabre numérique.
-// Le déploiement nécessite une configuration publique Supabase et une authentification utilisateur.
+// Module Supabase pour Palabre numérique.
 const PALABRE_AUDIO_BUCKET = 'palabre-audio';
+const PALABRE_SUPABASE_URL = 'https://ymcptudijtrnpchwvkqe.supabase.co';
