@@ -72,3 +72,14 @@ async function palabreList(){
  cloud("cloud-status").textContent=data.length+" enregistrement(s) privé(s).";
 }
 cloud("cloud-refresh").onclick=palabreList;
+
+async function palabrePublicLibrary(){
+ const status=document.getElementById("status");
+ status.textContent="Chargement de la bibliothèque…";
+ const {data,error}=await palabreDb.from("palabre_records").select("id,title_so,translation_fr,status").eq("status","published").eq("consent_recorded",true).eq("publication_authorized",true).order("created_at",{ascending:false}).limit(100);
+ if(error){status.textContent="Bibliothèque indisponible : "+error.message;return}
+ records=(data||[]).map(item=>({id:item.id,title_so:item.title_so,translation_fr:item.translation_fr}));
+ status.textContent=records.length+" récit(s) publié(s).";render();
+}
+document.getElementById("refresh").addEventListener("click",palabrePublicLibrary);
+palabrePublicLibrary();
