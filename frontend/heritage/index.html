@@ -11,8 +11,9 @@
 <header><main style="margin:0 auto"><h1>Palabre numérique</h1><p>Préserver et transmettre le patrimoine oral d'Ali-Sabieh · Soomaali / Français</p></main></header>
 <main>
 <section class="panel"><h2>Bibliothèque des récits publiés</h2><p class="muted">Seuls les récits autorisés à la publication sont affichés. Les enregistrements originaux restent protégés.</p><div class="row"><input id="search" type="search" placeholder="Rechercher un récit en somali ou français" aria-label="Rechercher"><button id="refresh" type="button">Actualiser</button></div><p id="status" role="status" aria-live="polite">Chargement…</p><div id="records"></div></section>
-<section class="panel"><h2>Transcrire un enregistrement en somali</h2><p class="muted">Choisissez un enregistrement autorisé. Le texte obtenu reste privé et peut être corrigé avant utilisation.</p><div class="row"><input id="audio-file" type="file" accept=".wav,.mp3,.m4a,.flac,.ogg,.opus,audio/*" aria-label="Choisir un enregistrement audio"></div><p><label><input id="audio-consent" type="checkbox" style="min-width:0;flex:none"> Je confirme que la personne enregistrée a donné son consentement.</label></p><button id="transcribe" type="button">Transcrire l'enregistrement</button><p id="transcription-status" role="status" aria-live="polite"></p><label for="transcription-result">Texte en somali (modifiable)</label><textarea id="transcription-result" rows="8" style="width:100%;padding:12px;border:1px solid #aebeb8;border-radius:9px;font:inherit" placeholder="La transcription apparaîtra ici."></textarea><p><button id="copy-transcription" type="button">Copier le texte</button></p></section>
-<section class="panel"><h2>Parcours de préservation</h2><p>1. Enregistrement avec consentement → 2. Transcription somalie → 3. Transcription et préparation du contenu → 4. Traduction et publication autorisée.</p><p class="muted">La transcription fonctionne uniquement sur le PC local. Elle ne publie ni ne sauvegarde automatiquement les enregistrements.</p></section>
+<section class="panel" id="recorder-panel"><h2>Enregistrer une discussion</h2><p class="muted">Enregistrez directement une conversation en somali depuis votre téléphone ou votre ordinateur. Demandez l'accord des participants avant de commencer.</p><p><label><input id="record-consent" type="checkbox" style="min-width:0;flex:none"> Je confirme avoir obtenu le consentement des personnes enregistrées.</label></p><div class="row"><button id="record-start" type="button">🎙️ Enregistrer la discussion</button><button id="record-pause" type="button" disabled>Pause</button><button id="record-stop" type="button" disabled>Arrêter</button></div><p id="record-timer" aria-live="off">Durée : 00:00</p><p id="record-status" role="status" aria-live="polite">Prêt à enregistrer.</p><audio id="record-preview" controls style="width:100%;display:none" aria-label="Réécouter la discussion"></audio><div class="row"><button id="record-use" type="button" disabled>Utiliser pour la transcription</button><a id="record-download" style="display:none;padding:10px 14px" download="discussion-somali.webm">Télécharger l'enregistrement</a></div><p class="muted">Le son reste sur cet appareil jusqu'à votre action. Il n'est ni publié ni envoyé automatiquement à un serveur.</p></section>
+<section class="panel"><h2>Transcrire un enregistrement en somali</h2><p class="muted">Choisissez un enregistrement autorisé. Le texte obtenu reste privé et peut être corrigé avant utilisation.</p><div class="row"><input id="audio-file" type="file" accept=".wav,.mp3,.m4a,.flac,.ogg,.opus,.webm,audio/*" aria-label="Choisir un enregistrement audio"></div><p><label><input id="audio-consent" type="checkbox" style="min-width:0;flex:none"> Je confirme que la personne enregistrée a donné son consentement.</label></p><button id="transcribe" type="button">Transcrire l'enregistrement</button><p id="transcription-status" role="status" aria-live="polite"></p><label for="transcription-result">Texte en somali (modifiable)</label><textarea id="transcription-result" rows="8" style="width:100%;padding:12px;border:1px solid #aebeb8;border-radius:9px;font:inherit" placeholder="La transcription apparaîtra ici."></textarea><p><button id="copy-transcription" type="button">Copier le texte</button></p></section>
+<section class="panel"><h2>Parcours de préservation</h2><p>1. Enregistrement avec consentement → 2. Transcription somalie → 3. Transcription et préparation du contenu → 4. Traduction et publication autorisée.</p><p class="muted">La transcription automatique nécessite actuellement le serveur Python local ; elle ne fonctionne pas encore sur Vercel. Elle ne publie ni ne sauvegarde automatiquement les enregistrements.</p></section>
 </main>
 <footer>Prototype de consultation locale · La lecture française utilise la voix disponible sur votre appareil.</footer>
 <script>
@@ -70,7 +71,7 @@ transcribe.addEventListener("click",async()=>{
  if(!file){transcriptionStatus.textContent="Choisissez d'abord un enregistrement.";return}
  if(!consent.checked){transcriptionStatus.textContent="Confirmez le consentement avant de continuer.";return}
  const extension="."+file.name.split(".").pop().toLowerCase();
- if(![".wav",".mp3",".m4a",".flac",".ogg",".opus"].includes(extension)){transcriptionStatus.textContent="Format non pris en charge.";return}
+ if(![".wav",".mp3",".m4a",".flac",".ogg",".opus",".webm"].includes(extension)){transcriptionStatus.textContent="Format non pris en charge.";return}
  if(file.size>100*1024*1024){transcriptionStatus.textContent="Fichier trop volumineux (100 Mo maximum).";return}
  transcribe.disabled=true;transcriptionStatus.textContent="Transcription en cours… Cette opération peut prendre plusieurs minutes.";
  try{
@@ -86,6 +87,58 @@ document.getElementById("copy-transcription").addEventListener("click",async()=>
  try{await navigator.clipboard.writeText(transcriptionResult.value);transcriptionStatus.textContent="Texte copié."}
  catch(e){transcriptionResult.focus();transcriptionResult.select();transcriptionStatus.textContent="Sélectionnez et copiez le texte."}
 });
+
+
+const recordConsent=document.getElementById("record-consent");
+const recordStart=document.getElementById("record-start"),recordPause=document.getElementById("record-pause"),recordStop=document.getElementById("record-stop");
+const recordStatus=document.getElementById("record-status"),recordTimer=document.getElementById("record-timer"),recordPreview=document.getElementById("record-preview"),recordUse=document.getElementById("record-use"),recordDownload=document.getElementById("record-download");
+let mediaRecorder=null,recordStream=null,recordChunks=[],recordBlob=null,recordUrl=null,recordSeconds=0,recordClock=null,recordMime="";
+function recordTime(){recordTimer.textContent="Durée : "+String(Math.floor(recordSeconds/60)).padStart(2,"0")+":"+String(recordSeconds%60).padStart(2,"0")}
+function stopClock(){if(recordClock!==null){clearInterval(recordClock);recordClock=null}}
+function releaseMic(){if(recordStream){recordStream.getTracks().forEach(track=>track.stop());recordStream=null}}
+function resetRecording(){stopClock();if(recordUrl){URL.revokeObjectURL(recordUrl);recordUrl=null}recordPreview.pause();recordPreview.removeAttribute("src");recordPreview.style.display="none";recordDownload.style.display="none";recordUse.disabled=true;recordBlob=null;recordChunks=[];recordSeconds=0;recordTime()}
+recordStart.addEventListener("click",async()=>{
+ if(!recordConsent.checked){recordStatus.textContent="Confirmez le consentement avant l'enregistrement.";return}
+ if(!navigator.mediaDevices?.getUserMedia||typeof MediaRecorder==="undefined"){recordStatus.textContent="Ce navigateur ne prend pas en charge l'enregistrement audio.";return}
+ resetRecording();recordStart.disabled=true;recordStatus.textContent="Autorisez l'accès au microphone…";
+ try{
+  recordStream=await navigator.mediaDevices.getUserMedia({audio:true});
+  const types=["audio/webm;codecs=opus","audio/webm","audio/mp4","audio/ogg;codecs=opus"];
+  recordMime=types.find(type=>MediaRecorder.isTypeSupported(type))||"";
+  mediaRecorder=new MediaRecorder(recordStream,recordMime?{mimeType:recordMime}:undefined);
+  recordMime=mediaRecorder.mimeType||recordMime;
+  mediaRecorder.ondataavailable=event=>{if(event.data.size)recordChunks.push(event.data)};
+  mediaRecorder.onerror=()=>{recordStatus.textContent="Erreur d'enregistrement. Réessayez.";stopClock();releaseMic();recordStart.disabled=false;recordPause.disabled=true;recordStop.disabled=true};
+  mediaRecorder.onstop=()=>{
+   stopClock();releaseMic();recordStart.disabled=false;recordPause.disabled=true;recordStop.disabled=true;
+   if(!recordChunks.length){recordStatus.textContent="Aucun son enregistré.";return}
+   recordBlob=new Blob(recordChunks,{type:recordMime||"audio/webm"});
+   const ext=recordMime.includes("mp4")?"m4a":recordMime.includes("ogg")?"ogg":"webm";
+   recordUrl=URL.createObjectURL(recordBlob);recordPreview.src=recordUrl;recordPreview.style.display="block";
+   recordDownload.href=recordUrl;recordDownload.download="discussion-somali."+ext;recordDownload.style.display="inline-block";
+   recordUse.disabled=recordBlob.size>100*1024*1024;
+   recordStatus.textContent=recordUse.disabled?"Enregistrement supérieur à 100 Mo : téléchargez-le pour le conserver.":"Enregistrement terminé. Vous pouvez le réécouter, le télécharger ou l'utiliser.";
+  };
+  mediaRecorder.start(1000);recordPause.disabled=false;recordStop.disabled=false;recordSeconds=0;recordTime();
+  recordClock=setInterval(()=>{if(mediaRecorder?.state==="recording"){recordSeconds++;recordTime()}},1000);
+  recordStatus.textContent="Enregistrement en cours…";
+ }catch(e){releaseMic();recordStart.disabled=false;recordPause.disabled=true;recordStop.disabled=true;recordStatus.textContent=e.name==="NotAllowedError"?"Microphone refusé. Autorisez-le dans les paramètres du navigateur.":"Impossible de démarrer le microphone : "+e.message}
+});
+recordPause.addEventListener("click",()=>{
+ if(!mediaRecorder)return;
+ if(mediaRecorder.state==="recording"){mediaRecorder.pause();recordPause.textContent="Reprendre";recordStatus.textContent="Enregistrement en pause."}
+ else if(mediaRecorder.state==="paused"){mediaRecorder.resume();recordPause.textContent="Pause";recordStatus.textContent="Enregistrement repris."}
+});
+recordStop.addEventListener("click",()=>{if(mediaRecorder&&mediaRecorder.state!=="inactive"){mediaRecorder.stop();recordStop.disabled=true;recordPause.disabled=true;recordPause.textContent="Pause"}});
+recordUse.addEventListener("click",()=>{
+ if(!recordBlob)return;
+ const ext=recordMime.includes("mp4")?"m4a":recordMime.includes("ogg")?"ogg":"webm";
+ const file=new File([recordBlob],"discussion-somali."+ext,{type:recordBlob.type});
+ const dt=new DataTransfer();dt.items.add(file);audioFile.files=dt.files;consent.checked=recordConsent.checked;
+ recordStatus.textContent="Enregistrement transféré au formulaire de transcription.";
+ document.getElementById("audio-file").scrollIntoView({behavior:"smooth",block:"center"});
+});
+window.addEventListener("pagehide",()=>{stopClock();releaseMic();if(recordUrl)URL.revokeObjectURL(recordUrl)});
 
 search.addEventListener("input",render);document.getElementById("refresh").addEventListener("click",load);window.addEventListener("pagehide",stopVoice);load();
 </script>
