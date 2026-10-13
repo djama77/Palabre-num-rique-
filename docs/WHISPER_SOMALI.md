@@ -39,7 +39,7 @@ Remplacer les chemins et identifiants fictifs. Les appels doivent être faits de
 ## Garanties et limites
 - Consentement vérifié avant traitement ; accès aux fichiers audio limité au dossier privé.
 - Transcription uniquement des brouillons ; résultat reste privé, statut `transcribed`.
-- La publication exige ensuite une revue et la validation du Collège des Sages.
+- Aucune validation par les Sages n'est requise. La publication exige le consentement et une autorisation explicite de l'opérateur habilité.
 - La qualité en somali varie : correction humaine obligatoire.
 - Pas de traduction NLLB ni de connexion ElevenLabs dans ce module.
 - Pas de route publique d'import ou d'exécution Whisper : l'authentification, le quota, le contrôle de durée et la supervision doivent être développés avant de l'exposer.
