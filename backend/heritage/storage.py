@@ -86,6 +86,6 @@ class HeritageStorage:
         with self._connect() as db:
             ids=db.execute(
                 "SELECT id FROM heritage_records WHERE status=? AND access_level=? ORDER BY id LIMIT ?",
-                (Status.VALIDATED.value,"public",limit)
+                (Status.PUBLISHED.value,"public",limit)
             ).fetchall()
         return [self.get_public(row[0]) for row in ids]

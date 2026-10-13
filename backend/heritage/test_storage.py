@@ -21,11 +21,9 @@ class StorageTests(unittest.TestCase):
             self.store.get_public("r1")
         self.assertEqual(self.store.list_public(),[])
 
-    def test_validated_public(self):
+    def test_published_public(self):
         record=HeritageRecord("r2","Sheeko","private/audio.wav",True)
         record.attach_transcription("Qoraal","collector")
-        record.submit_for_review("editor")
-        record.validate("sage",is_authorized_sage=True)
         record.translation_fr="Récit traduit"
         record.publish("admin",publication_authorized=True)
         self.store.save(record)
