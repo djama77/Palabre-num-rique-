@@ -51,3 +51,24 @@ cloud("cloud-save").onclick=async()=>{
  }catch(error){cloud("cloud-status").textContent="Sauvegarde impossible : "+error.message}
  finally{cloud("cloud-save").disabled=!palabreUser}
 };
+
+async function palabreList(){
+ if(!palabreUser)return;
+ const {data,error}=await palabreDb.from("palabre_records").select("title_so,audio_path,created_at").eq("owner_id",palabreUser.id).order("created_at",{ascending:false}).limit(100);
+ const list=cloud("cloud-list");list.replaceChildren();
+ if(error){cloud("cloud-status").textContent="Liste indisponible : "+error.message;return}
+ for(const item of data){
+  const article=document.createElement("article"),heading=document.createElement("h3"),button=document.createElement("button");
+  heading.textContent=item.title_so;button.type="button";button.textContent="Écouter";
+  button.disabled=!item.audio_path;
+  button.onclick=async()=>{
+   const {data:link,error:err}=await palabreDb.storage.from(PALABRE_AUDIO_BUCKET).createSignedUrl(item.audio_path,60);
+   if(err){cloud("cloud-status").textContent=err.message;return}
+   article.querySelector("audio")?.remove();
+   const player=document.createElement("audio");player.controls=true;player.src=link.signedUrl;player.style.width="100%";article.append(player);
+  };
+  article.append(heading,button);list.append(article);
+ }
+ cloud("cloud-status").textContent=data.length+" enregistrement(s) privé(s).";
+}
+cloud("cloud-refresh").onclick=palabreList;
