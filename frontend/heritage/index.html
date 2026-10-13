@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Palabre numérique — Patrimoine oral d'Ali-Sabieh</title>
+<style>
+:root{font-family:system-ui,-apple-system,sans-serif;color:#172c30;background:#f5f7f4}*{box-sizing:border-box}body{margin:0}header{background:#164d4a;color:white;padding:25px 18px}header p{opacity:.88;margin-bottom:0}main{max-width:920px;margin:24px auto;padding:0 16px}.panel{background:white;border:1px solid #dbe5e0;border-radius:14px;padding:20px;margin-bottom:16px;box-shadow:0 3px 12px #00000009}h1{margin:0;font-size:1.65rem}h2{margin-top:0;font-size:1.2rem}.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}input{padding:12px;border:1px solid #aebeb8;border-radius:9px;flex:1;min-width:190px;font-size:1rem}button{padding:10px 14px;border:0;border-radius:9px;background:#166d66;color:white;font-size:1rem;cursor:pointer}button:disabled{background:#879d98;cursor:not-allowed}.muted{color:#4d6460}article{border-top:1px solid #e0e9e4;padding:15px 0}article:first-child{border-top:0}.tag{font-size:.8rem;color:#17584f;background:#e8f5f0;padding:3px 8px;border-radius:20px}.empty{padding:16px 0}footer{padding:22px;text-align:center;color:#52625d}
+</style>
+</head>
+<body>
+<header><main style="margin:0 auto"><h1>Palabre numérique</h1><p>Préserver et transmettre le patrimoine oral d'Ali-Sabieh · Soomaali / Français</p></main></header>
+<main>
+<section class="panel"><h2>Bibliothèque des récits validés</h2><p class="muted">Seuls les récits autorisés à la publication sont affichés. Les enregistrements originaux restent protégés.</p><div class="row"><input id="search" type="search" placeholder="Rechercher un récit en somali ou français" aria-label="Rechercher"><button id="refresh" type="button">Actualiser</button></div><p id="status" role="status" aria-live="polite">Chargement…</p><div id="records"></div></section>
+<section class="panel"><h2>Parcours de préservation</h2><p>1. Enregistrement avec consentement → 2. Transcription somalie → 3. Vérification par le Collège des Sages → 4. Traduction et publication autorisée.</p><p class="muted">L'enregistrement, la transcription automatique et la validation nécessitent encore un espace administrateur sécurisé. Aucun formulaire de collecte n'est ouvert au public dans cette version.</p></section>
+</main>
+<footer>Prototype de consultation locale · La lecture française utilise la voix disponible sur votre appareil.</footer>
+<script>
+"use strict";
+const list=document.getElementById("records"), status=document.getElementById("status"), search=document.getElementById("search");
+let records=[];let speech=null;
+function stopVoice(){if("speechSynthesis" in window)window.speechSynthesis.cancel();speech=null}
+function render(){
+ stopVoice();list.replaceChildren();
+ const q=search.value.trim().toLocaleLowerCase();
+ const shown=records.filter(r=>(String(r.title_so||"")+" "+String(r.translation_fr||"")).toLocaleLowerCase().includes(q));
+ if(!shown.length){const p=document.createElement("p");p.className="empty muted";p.textContent="Aucun récit public correspondant.";list.append(p);return}
+ for(const record of shown){
+  const article=document.createElement("article"),title=document.createElement("h3"),translation=document.createElement("p"),badge=document.createElement("span"),btn=document.createElement("button");
+  title.textContent=record.title_so||"Récit sans titre";translation.textContent=record.translation_fr||"Traduction française non disponible.";
+  badge.className="tag";badge.textContent="Validé · Public";
+  btn.type="button";btn.textContent="Écouter la traduction française";
+  btn.disabled=!record.translation_fr||!("speechSynthesis" in window);
+  btn.addEventListener("click",()=>{stopVoice();const u=new SpeechSynthesisUtterance(record.translation_fr);u.lang="fr-FR";u.rate=.9;speech=u;window.speechSynthesis.speak(u)});
+  article.append(title,badge,translation,btn);list.append(article);
+ }
+}
+async function load(){
+ status.textContent="Chargement des récits…";
+ try{const response=await fetch("/api/heritage/public",{cache:"no-store"});if(!response.ok)throw new Error("HTTP "+response.status);
+ const data=await response.json();if(!Array.isArray(data.records))throw new Error("Format inattendu");
+ records=data.records.filter(r=>r.validation_status==="validated"&&r.access_level==="public");
+ status.textContent=records.length+" récit(s) public(s) disponible(s).";render();
+ }catch(e){records=[];list.replaceChildren();status.textContent="Impossible de joindre l'API locale. Démarrez le serveur Python (voir le guide)."}
+}
+search.addEventListener("input",render);document.getElementById("refresh").addEventListener("click",load);window.addEventListener("pagehide",stopVoice);load();
+</script>
+</body></html>
