@@ -22,7 +22,7 @@ async function palabreLogin(create){
  const {data,error}=create?await palabreDb.auth.signUp({email,password}):await palabreDb.auth.signInWithPassword({email,password});
  cloud("cloud-password").value="";
  cloud("cloud-status").textContent=error?error.message:create&&!data.session?"Vérifiez votre boîte e-mail pour confirmer votre compte.":"Connexion réussie.";
- if(!error)await palabreRefreshAuth();
+ if(!error){await palabreRefreshAuth();if(palabreUser)await palabreList();}
 }
 cloud("cloud-login").onclick=()=>palabreLogin(false);
 cloud("cloud-register").onclick=()=>palabreLogin(true);
