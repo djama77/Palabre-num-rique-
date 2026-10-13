@@ -16,7 +16,7 @@ class VoiceConfigurationError(RuntimeError):
 def synthesize_validated_text(text: str, *, voice_id: str, approved: bool) -> bytes:
     """Return MP3 bytes. Caller MUST authenticate and authorize the request."""
     if not approved:
-        raise PermissionError("Contenu non validé par le Collège des Sages")
+        raise PermissionError("Contenu non autorisé à la publication")
     if not isinstance(text, str) or not text.strip() or len(text) > MAX_TEXT_CHARS:
         raise ValueError("Texte requis (1 à 1200 caractères)")
     if not voice_id or not all(c.isalnum() or c in "-_" for c in voice_id):
