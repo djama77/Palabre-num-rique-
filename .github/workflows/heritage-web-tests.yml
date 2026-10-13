@@ -1,0 +1,23 @@
+name: Palabre web interface tests
+on:
+  push:
+    branches:
+      - feature/heritage-web-interface-v1
+  pull_request:
+    paths:
+      - 'backend/heritage/**'
+      - 'frontend/heritage/**'
+      - '.github/workflows/heritage-web-tests.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Run heritage API and web tests
+        run: python -m unittest discover -s backend/heritage -p 'test_*.py' -v
