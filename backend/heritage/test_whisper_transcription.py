@@ -28,7 +28,7 @@ class WhisperTests(unittest.TestCase):
             with self.assertRaises(PermissionError):
                 transcrire_brouillon(record, actor="collector", audio_root=folder)
 
-    def test_transcription_requires_review(self):
+    def test_transcription_stays_private(self):
         with tempfile.TemporaryDirectory() as folder:
             p = Path(folder) / "sample.wav"
             p.write_bytes(b"test")
