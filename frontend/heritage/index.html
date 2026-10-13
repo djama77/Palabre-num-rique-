@@ -140,6 +140,6 @@ recordUse.addEventListener("click",()=>{
 });
 window.addEventListener("pagehide",()=>{stopClock();releaseMic();if(recordUrl)URL.revokeObjectURL(recordUrl)});
 
-search.addEventListener("input",render);document.getElementById("refresh").addEventListener("click",load);window.addEventListener("pagehide",stopVoice);load();
+search.addEventListener("input",render);window.addEventListener("pagehide",stopVoice);
 </script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script><script src="./supabase-cloud.js"></script></body></html>
