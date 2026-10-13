@@ -29,8 +29,6 @@ class APITests(unittest.TestCase):
     def test_published_record(self):
         r = HeritageRecord("public1", "Sheeko", "private.wav", True)
         r.attach_transcription("Qoraal", "collector")
-        r.submit_for_review("editor")
-        r.validate("sage", is_authorized_sage=True)
         r.translation_fr = "Traduction relue"
         r.publish("admin", publication_authorized=True)
         self.store.save(r)
