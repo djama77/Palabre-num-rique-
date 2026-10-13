@@ -29,9 +29,25 @@ function render(){
   const article=document.createElement("article"),title=document.createElement("h3"),translation=document.createElement("p"),badge=document.createElement("span"),btn=document.createElement("button");
   title.textContent=record.title_so||"Récit sans titre";translation.textContent=record.translation_fr||"Traduction française non disponible.";
   badge.className="tag";badge.textContent="Publié · Public";
-  btn.type="button";btn.textContent="Écouter la traduction française";
-  btn.disabled=!record.translation_fr||!("speechSynthesis" in window);
-  btn.addEventListener("click",()=>{stopVoice();const u=new SpeechSynthesisUtterance(record.translation_fr);u.lang="fr-FR";u.rate=.9;speech=u;window.speechSynthesis.speak(u)});
+  btn.type="button";btn.textContent="Écouter le récit";
+  btn.disabled=!record.translation_fr;
+  btn.addEventListener("click",async()=>{
+   stopVoice();btn.disabled=true;btn.textContent="Préparation de la lecture…";
+   try{
+     const response=await fetch("/api/local/ecouter/"+encodeURIComponent(record.id),{cache:"no-store"});
+     if(!response.ok)throw new Error("Narration indisponible");
+     const blob=await response.blob(),url=URL.createObjectURL(blob);
+     const audio=new Audio(url);
+     audio.addEventListener("ended",()=>URL.revokeObjectURL(url),{once:true});
+     audio.addEventListener("error",()=>URL.revokeObjectURL(url),{once:true});
+     await audio.play();
+   }catch(e){
+     if("speechSynthesis" in window){
+       const u=new SpeechSynthesisUtterance(record.translation_fr);
+       u.lang="fr-FR";u.rate=.9;speech=u;window.speechSynthesis.speak(u);
+     }else status.textContent="Lecture vocale indisponible.";
+   }finally{btn.disabled=false;btn.textContent="Écouter le récit"}
+  });
   article.append(title,badge,translation,btn);list.append(article);
  }
 }
