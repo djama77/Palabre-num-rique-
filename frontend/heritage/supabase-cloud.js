@@ -29,3 +29,25 @@ cloud("cloud-register").onclick=()=>palabreLogin(true);
 cloud("cloud-logout").onclick=async()=>{await palabreDb.auth.signOut();await palabreRefreshAuth()};
 palabreDb.auth.onAuthStateChange(()=>setTimeout(palabreRefreshAuth,0));
 palabreRefreshAuth();
+
+cloud("cloud-save").onclick=async()=>{
+ if(!palabreUser||!cloud("cloud-consent").checked){cloud("cloud-status").textContent="Connexion et consentement nécessaires.";return}
+ const title=cloud("cloud-title").value.trim();
+ const audio=(typeof recordBlob!=="undefined"&&recordBlob)||cloud("cloud-file").files[0];
+ if(!title||title.length>300||!audio){cloud("cloud-status").textContent="Ajoutez un titre et un enregistrement.";return}
+ if(audio.size>100*1024*1024){cloud("cloud-status").textContent="100 Mo maximum.";return}
+ const mime=(audio.type||"").split(";")[0];
+ const formats={"audio/webm":"webm","audio/mp4":"m4a","audio/mpeg":"mp3","audio/wav":"wav","audio/x-wav":"wav","audio/ogg":"ogg","audio/flac":"flac"};
+ if(!formats[mime]){cloud("cloud-status").textContent="Format audio non pris en charge.";return}
+ const path=palabreUser.id+"/"+crypto.randomUUID()+"."+formats[mime];
+ cloud("cloud-save").disabled=true;cloud("cloud-status").textContent="Sauvegarde privée en cours…";
+ try{
+  const {error:upload}=await palabreDb.storage.from(PALABRE_AUDIO_BUCKET).upload(path,audio,{contentType:mime,upsert:false});
+  if(upload)throw upload;
+  const {error:insert}=await palabreDb.from("palabre_records").insert({owner_id:palabreUser.id,title_so:title,audio_path:path,consent_recorded:true,publication_authorized:false,status:"draft"});
+  if(insert){await palabreDb.storage.from(PALABRE_AUDIO_BUCKET).remove([path]);throw insert}
+  cloud("cloud-status").textContent="Discussion sauvegardée dans votre espace privé.";
+  await palabreList();
+ }catch(error){cloud("cloud-status").textContent="Sauvegarde impossible : "+error.message}
+ finally{cloud("cloud-save").disabled=!palabreUser}
+};
