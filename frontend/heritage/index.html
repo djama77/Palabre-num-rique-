@@ -11,7 +11,8 @@
 <header><main style="margin:0 auto"><h1>Palabre numérique</h1><p>Préserver et transmettre le patrimoine oral d'Ali-Sabieh · Soomaali / Français</p></main></header>
 <main>
 <section class="panel"><h2>Bibliothèque des récits publiés</h2><p class="muted">Seuls les récits autorisés à la publication sont affichés. Les enregistrements originaux restent protégés.</p><div class="row"><input id="search" type="search" placeholder="Rechercher un récit en somali ou français" aria-label="Rechercher"><button id="refresh" type="button">Actualiser</button></div><p id="status" role="status" aria-live="polite">Chargement…</p><div id="records"></div></section>
-<section class="panel"><h2>Parcours de préservation</h2><p>1. Enregistrement avec consentement → 2. Transcription somalie → 3. Transcription et préparation du contenu → 4. Traduction et publication autorisée.</p><p class="muted">L'enregistrement, la transcription automatique et la publication nécessitent encore un espace administrateur sécurisé. Aucun formulaire de collecte n'est ouvert au public dans cette version.</p></section>
+<section class="panel"><h2>Transcrire un enregistrement en somali</h2><p class="muted">Choisissez un enregistrement autorisé. Le texte obtenu reste privé et peut être corrigé avant utilisation.</p><div class="row"><input id="audio-file" type="file" accept=".wav,.mp3,.m4a,.flac,.ogg,.opus,audio/*" aria-label="Choisir un enregistrement audio"></div><p><label><input id="audio-consent" type="checkbox" style="min-width:0;flex:none"> Je confirme que la personne enregistrée a donné son consentement.</label></p><button id="transcribe" type="button">Transcrire l'enregistrement</button><p id="transcription-status" role="status" aria-live="polite"></p><label for="transcription-result">Texte en somali (modifiable)</label><textarea id="transcription-result" rows="8" style="width:100%;padding:12px;border:1px solid #aebeb8;border-radius:9px;font:inherit" placeholder="La transcription apparaîtra ici."></textarea><p><button id="copy-transcription" type="button">Copier le texte</button></p></section>
+<section class="panel"><h2>Parcours de préservation</h2><p>1. Enregistrement avec consentement → 2. Transcription somalie → 3. Transcription et préparation du contenu → 4. Traduction et publication autorisée.</p><p class="muted">La transcription fonctionne uniquement sur le PC local. Elle ne publie ni ne sauvegarde automatiquement les enregistrements.</p></section>
 </main>
 <footer>Prototype de consultation locale · La lecture française utilise la voix disponible sur votre appareil.</footer>
 <script>
@@ -28,9 +29,25 @@ function render(){
   const article=document.createElement("article"),title=document.createElement("h3"),translation=document.createElement("p"),badge=document.createElement("span"),btn=document.createElement("button");
   title.textContent=record.title_so||"Récit sans titre";translation.textContent=record.translation_fr||"Traduction française non disponible.";
   badge.className="tag";badge.textContent="Publié · Public";
-  btn.type="button";btn.textContent="Écouter la traduction française";
-  btn.disabled=!record.translation_fr||!("speechSynthesis" in window);
-  btn.addEventListener("click",()=>{stopVoice();const u=new SpeechSynthesisUtterance(record.translation_fr);u.lang="fr-FR";u.rate=.9;speech=u;window.speechSynthesis.speak(u)});
+  btn.type="button";btn.textContent="Écouter le récit";
+  btn.disabled=!record.translation_fr;
+  btn.addEventListener("click",async()=>{
+   stopVoice();btn.disabled=true;btn.textContent="Préparation de la lecture…";
+   try{
+     const response=await fetch("/api/local/ecouter/"+encodeURIComponent(record.id),{cache:"no-store"});
+     if(!response.ok)throw new Error("Narration indisponible");
+     const blob=await response.blob(),url=URL.createObjectURL(blob);
+     const audio=new Audio(url);
+     audio.addEventListener("ended",()=>URL.revokeObjectURL(url),{once:true});
+     audio.addEventListener("error",()=>URL.revokeObjectURL(url),{once:true});
+     await audio.play();
+   }catch(e){
+     if("speechSynthesis" in window){
+       const u=new SpeechSynthesisUtterance(record.translation_fr);
+       u.lang="fr-FR";u.rate=.9;speech=u;window.speechSynthesis.speak(u);
+     }else status.textContent="Lecture vocale indisponible.";
+   }finally{btn.disabled=false;btn.textContent="Écouter le récit"}
+  });
   article.append(title,badge,translation,btn);list.append(article);
  }
 }
@@ -42,6 +59,34 @@ async function load(){
  status.textContent=records.length+" récit(s) public(s) disponible(s).";render();
  }catch(e){records=[];list.replaceChildren();status.textContent="Impossible de joindre l'API locale. Démarrez le serveur Python (voir le guide)."}
 }
+
+const audioFile=document.getElementById("audio-file");
+const consent=document.getElementById("audio-consent");
+const transcribe=document.getElementById("transcribe");
+const transcriptionStatus=document.getElementById("transcription-status");
+const transcriptionResult=document.getElementById("transcription-result");
+transcribe.addEventListener("click",async()=>{
+ const file=audioFile.files[0];
+ if(!file){transcriptionStatus.textContent="Choisissez d'abord un enregistrement.";return}
+ if(!consent.checked){transcriptionStatus.textContent="Confirmez le consentement avant de continuer.";return}
+ const extension="."+file.name.split(".").pop().toLowerCase();
+ if(![".wav",".mp3",".m4a",".flac",".ogg",".opus"].includes(extension)){transcriptionStatus.textContent="Format non pris en charge.";return}
+ if(file.size>100*1024*1024){transcriptionStatus.textContent="Fichier trop volumineux (100 Mo maximum).";return}
+ transcribe.disabled=true;transcriptionStatus.textContent="Transcription en cours… Cette opération peut prendre plusieurs minutes.";
+ try{
+  const response=await fetch("/api/local/transcrire",{method:"POST",headers:{"Content-Type":"application/octet-stream","X-Consentement":"oui","X-Audio-Extension":extension},body:file});
+  const result=await response.json();
+  if(!response.ok)throw new Error(result.error||"Échec de la transcription");
+  transcriptionResult.value=result.texte||"";
+  transcriptionStatus.textContent=result.texte?"Transcription terminée. Vérifiez et corrigez le texte.":"Aucune parole détectée.";
+ }catch(e){transcriptionStatus.textContent=e.message||"Service indisponible. Démarrez le serveur local."}
+ finally{transcribe.disabled=false}
+});
+document.getElementById("copy-transcription").addEventListener("click",async()=>{
+ try{await navigator.clipboard.writeText(transcriptionResult.value);transcriptionStatus.textContent="Texte copié."}
+ catch(e){transcriptionResult.focus();transcriptionResult.select();transcriptionStatus.textContent="Sélectionnez et copiez le texte."}
+});
+
 search.addEventListener("input",render);document.getElementById("refresh").addEventListener("click",load);window.addEventListener("pagehide",stopVoice);load();
 </script>
 </body></html>

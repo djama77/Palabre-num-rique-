@@ -8,11 +8,18 @@ from pathlib import Path
 from api import Handler, DB_PATH
 from storage import HeritageStorage
 from http.server import ThreadingHTTPServer
+from local_transcription import local_post
+from local_narration import narration_get
 
 UI_FILE = Path(__file__).resolve().parents[2] / "frontend" / "heritage" / "index.html"
 
 class WebHandler(Handler):
+    def do_POST(self):
+        return local_post(self)
+
     def do_GET(self):
+        if narration_get(self):
+            return
         if self.path in ("/", "/index.html"):
             try:
                 body = UI_FILE.read_bytes()
@@ -32,6 +39,8 @@ class WebHandler(Handler):
 
 def serve(host="127.0.0.1", port=8765, db_path=DB_PATH):
     WebHandler.store = HeritageStorage(db_path)
+    if host not in ("127.0.0.1", "::1"):
+        raise ValueError("La transcription est réservée au serveur local (127.0.0.1)")
     server = ThreadingHTTPServer((host, port), WebHandler)
     print("Palabre numérique : http://%s:%s/" % (host, port))
     server.serve_forever()
