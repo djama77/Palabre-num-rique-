@@ -1,0 +1,12 @@
+*.sqlite
+*.sqlite3
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+__pycache__/
+*.pyc
+private_audio/
+recordings/
+.env
+.env.*
