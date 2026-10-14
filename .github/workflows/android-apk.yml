@@ -10,24 +10,49 @@ permissions:
   contents: read
 jobs:
   apk:
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
-      - uses: android-actions/setup-android@v3
-      - uses: gradle/actions/setup-gradle@v4
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
-      - name: Install Android SDK
-        run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
-      - name: Build Android APK
+      - name: Diagnose Android build environment
+        shell: bash
+        run: |
+          set -euxo pipefail
+          java -version
+          gradle --version
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          ls -la android-native
+          ls -la android-native/app/src/main/java/dj/palabre/numerique
+      - name: Install Android platform
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platforms;android-35" "build-tools;35.0.0"
+      - name: Build APK with detailed logs
         working-directory: android-native
-        run: gradle :app:assembleDebug --stacktrace --no-daemon
-      - name: Upload Android APK
+        shell: bash
+        run: |
+          set -o pipefail
+          gradle :app:assembleDebug --stacktrace --info --no-daemon 2>&1 | tee ../android-build.log
+      - name: Save diagnostic logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-build-diagnostics
+          path: android-build.log
+          if-no-files-found: ignore
+      - name: Upload installable APK
         uses: actions/upload-artifact@v4
         with:
           name: Palabre-Numerique-APK
