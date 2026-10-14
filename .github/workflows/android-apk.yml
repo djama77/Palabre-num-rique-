@@ -24,6 +24,9 @@ jobs:
       - name: Install dependencies
         working-directory: android-app
         run: npm install
+      - name: Check Capacitor environment
+        working-directory: android-app
+        run: npx cap doctor
       - name: Generate Android project
         working-directory: android-app
         run: |
