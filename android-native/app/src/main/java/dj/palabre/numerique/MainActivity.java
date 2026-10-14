@@ -26,7 +26,7 @@ public class MainActivity extends Activity {
         webView.setWebViewClient(new WebViewClient() {
             @Override public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 Uri url = request.getUrl();
-                return !("https".equals(url.getScheme()) && (url.getHost().equals("palabre-numerique.vercel.app") || url.getHost().endsWith(".supabase.co")));
+                return !("https".equals(url.getScheme()) && url.getHost() != null && (url.getHost().equals("palabre-numerique.vercel.app") || url.getHost().endsWith(".supabase.co")));
             }
         });
         webView.setWebChromeClient(new WebChromeClient() {
@@ -34,7 +34,7 @@ public class MainActivity extends Activity {
                 runOnUiThread(() -> {
                     boolean audio = false;
                     for (String resource : request.getResources()) if (PermissionRequest.RESOURCE_AUDIO_CAPTURE.equals(resource)) audio = true;
-                    if (!audio || !request.getOrigin().toString().startsWith(HOME)) { request.deny(); return; }
+                    if (!audio || !HOME.equals(request.getOrigin().toString().replaceAll("/$", ""))) { request.deny(); return; }
                     pendingRequest = request;
                     if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
                         request.grant(new String[]{PermissionRequest.RESOURCE_AUDIO_CAPTURE});
