@@ -1,0 +1,12 @@
+{
+  "appId": "dj.palabre.numerique",
+  "appName": "Palabre Numérique",
+  "webDir": "www",
+  "server": {
+    "url": "https://palabre-numerique.vercel.app",
+    "cleartext": false
+  },
+  "android": {
+    "allowMixedContent": false
+  }
+}
