@@ -4,6 +4,7 @@ Prototype repository: use a protected database file on the server, never in a
 public/static directory. No original audio bytes are stored in this database.
 """
 import json
+from contextlib import contextmanager
 import sqlite3
 from pathlib import Path
 from workflow import HeritageRecord, Status
@@ -30,8 +31,14 @@ class HeritageStorage:
         with self._connect() as db:
             db.executescript(SCHEMA)
 
+    @contextmanager
     def _connect(self):
-        return sqlite3.connect(self.db_path, timeout=10)
+        db = sqlite3.connect(self.db_path, timeout=10)
+        try:
+            with db:
+                yield db
+        finally:
+            db.close()
 
     def save(self, record):
         if not isinstance(record, HeritageRecord):
