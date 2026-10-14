@@ -2,6 +2,7 @@ name: Palabre web interface tests
 on:
   push:
     branches:
+      - main
       - feature/heritage-web-interface-v1
   pull_request:
     paths:
