@@ -21,7 +21,7 @@ async function palabreLogin(create){
  if(!email||!password){cloud("cloud-status").textContent="Indiquez votre e-mail et votre mot de passe.";return}
  const {data,error}=create?await palabreDb.auth.signUp({email,password}):await palabreDb.auth.signInWithPassword({email,password});
  cloud("cloud-password").value="";
- cloud("cloud-status").textContent=error?error.message:create&&!data.session?"Vérifiez votre boîte e-mail pour confirmer votre compte.":"Connexion réussie.";
+ cloud("cloud-status").textContent=error?palabreAuthMessage(error):create&&!data.session?"Vérifiez votre boîte e-mail pour confirmer votre compte.":"Connexion réussie. Vous pouvez maintenant sauvegarder votre enregistrement.";
  if(!error){await palabreRefreshAuth();if(palabreUser)await palabreList();}
 }
 cloud("cloud-login").onclick=()=>palabreLogin(false);
@@ -39,7 +39,7 @@ cloud("cloud-save").onclick=async()=>{
  const mime=(audio.type||"").split(";")[0];
  const formats={"audio/webm":"webm","audio/mp4":"m4a","audio/mpeg":"mp3","audio/wav":"wav","audio/x-wav":"wav","audio/ogg":"ogg","audio/flac":"flac"};
  if(!formats[mime]){cloud("cloud-status").textContent="Format audio non pris en charge.";return}
- const path=palabreUser.id+"/"+crypto.randomUUID()+"."+formats[mime];
+ const uuid=globalThis.crypto?.randomUUID?crypto.randomUUID():Date.now()+"-"+Math.random().toString(16).slice(2);\n const path=palabreUser.id+"/"+uuid+"."+formats[mime];
  cloud("cloud-save").disabled=true;cloud("cloud-status").textContent="Sauvegarde privée en cours…";
  try{
   const {error:upload}=await palabreDb.storage.from(PALABRE_AUDIO_BUCKET).upload(path,audio,{contentType:mime,upsert:false});
@@ -54,7 +54,7 @@ cloud("cloud-save").onclick=async()=>{
 
 async function palabreList(){
  if(!palabreUser)return;
- const {data,error}=await palabreDb.from("palabre_records").select("title_so,audio_path,created_at").eq("owner_id",palabreUser.id).order("created_at",{ascending:false}).limit(100);
+ const {data,error}=await palabreDb.from("palabre_records").select("id,title_so,audio_path,created_at").eq("owner_id",palabreUser.id).order("created_at",{ascending:false}).limit(100);
  const list=cloud("cloud-list");list.replaceChildren();
  if(error){cloud("cloud-status").textContent="Liste indisponible : "+error.message;return}
  for(const item of data){
@@ -65,7 +65,7 @@ async function palabreList(){
    const {data:link,error:err}=await palabreDb.storage.from(PALABRE_AUDIO_BUCKET).createSignedUrl(item.audio_path,60);
    if(err){cloud("cloud-status").textContent=err.message;return}
    article.querySelector("audio")?.remove();
-   const player=document.createElement("audio");player.controls=true;player.src=link.signedUrl;player.style.width="100%";article.append(player);
+   const player=document.createElement("audio");player.controls=true;player.preload="metadata";player.src=link.signedUrl;player.style.width="100%";player.addEventListener("error",()=>{cloud("cloud-status").textContent="Lecture impossible. Actualisez puis réessayez."});article.append(player);\n   try{await player.play()}catch(e){cloud("cloud-status").textContent="Appuyez sur ▶ pour lancer la lecture."}
   };
   article.append(heading,button);list.append(article);
  }
