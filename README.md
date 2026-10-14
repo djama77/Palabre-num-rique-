@@ -4,6 +4,10 @@
 
 > **État du projet : prototype en développement.** Certains modules fonctionnent localement ; la disponibilité en production de l’authentification, des enregistrements, des sauvegardes cloud, de la transcription automatique et de la synthèse vocale distante doit être vérifiée séparément. Un déploiement réussi ne prouve pas ces fonctionnalités.
 
+## Présentation rapide
+
+Le projet réunit une interface de collecte et de consultation, un backend Python pour le patrimoine oral et des composants audio. Il distingue la conservation des enregistrements originaux, la transcription, la traduction et la validation avant publication.
+
 ## Objectifs
 
 - Conserver les témoignages et enregistrements **originaux en somali**, avec consentement et provenance.
@@ -110,3 +114,14 @@ Consulter [l’architecture vocale](docs/ARCHITECTURE_PALABRE_VOIX.md), [l’API
 - **Vocation :** archivage patrimonial, transmission intergénérationnelle et consultation de récits autorisés.
 
 **Respect culturel :** aucun témoignage, voix ou information sensible ne doit être publié ou transmis à un service externe sans autorisation appropriée.
+
+## Guide de contribution
+
+Avant de proposer une modification, créer une branche dédiée, exécuter les tests disponibles, puis ouvrir une pull request décrivant les changements et leurs effets sur les données patrimoniales. Ne jamais joindre de véritables enregistrements, identifiants personnels, mots de passe ou secrets API à une issue ou un commit.
+
+## Vérifications avant mise en ligne
+
+- Tester sur ordinateur et Android les permissions micro, l’enregistrement et la lecture.
+- Vérifier l’authentification, les politiques RLS et la sauvegarde Supabase avec un compte de test.
+- Contrôler le consentement, les rôles de validation et la non-publication des brouillons.
+- Vérifier les journaux et les paramètres de déploiement Vercel sans exposer les secrets.
