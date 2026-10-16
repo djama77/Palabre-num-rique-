@@ -1,7 +1,7 @@
 name: Heritage and voice unit tests
 on:
   push:
-    branches: [feature/elevenlabs-voice-v1]
+    branches: [main, feature/elevenlabs-voice-v1]
   pull_request:
     paths:
       - 'backend/heritage/**'
