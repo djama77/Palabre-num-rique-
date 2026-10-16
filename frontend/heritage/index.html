@@ -51,14 +51,6 @@ function render(){
   article.append(title,badge,translation,btn);list.append(article);
  }
 }
-async function load(){
- status.textContent="Chargement des récits…";
- try{const response=await fetch("/api/heritage/public",{cache:"no-store"});if(!response.ok)throw new Error("HTTP "+response.status);
- const data=await response.json();if(!Array.isArray(data.records))throw new Error("Format inattendu");
- records=data.records.filter(r=>r.publication_status==="published"&&r.access_level==="public");
- status.textContent=records.length+" récit(s) public(s) disponible(s).";render();
- }catch(e){records=[];list.replaceChildren();status.textContent="Impossible de joindre l'API locale. Démarrez le serveur Python (voir le guide)."}
-}
 
 const audioFile=document.getElementById("audio-file");
 const consent=document.getElementById("audio-consent");
