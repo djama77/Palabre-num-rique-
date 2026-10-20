@@ -11,8 +11,13 @@ import tempfile
 class WebAppTests(unittest.TestCase):
     def test_html_exists_and_contains_controls(self):
         html = UI_FILE.read_text(encoding="utf-8")
-        for marker in ('id="search"', 'id="records"', 'id="refresh"', 'speechSynthesis', '/api/heritage/public'):
+        for marker in ('id="search"', 'id="records"', 'id="refresh"', 'speechSynthesis', 'supabase-cloud.js'):
             self.assertIn(marker, html)
+
+    def test_supabase_library_uses_published_records_only(self):
+        cloud_script = (UI_FILE.parent / "supabase-cloud.js").read_text(encoding="utf-8")
+        for marker in ('palabrePublicLibrary', '.eq("status","published")', '.eq("publication_authorized",true)'):
+            self.assertIn(marker, cloud_script)
 
     def test_local_http_and_api(self):
         with tempfile.TemporaryDirectory() as tmp:
