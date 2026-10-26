@@ -30,7 +30,9 @@ Le README marque la collecte d'enregistrements comme accomplie, mais les étapes
 
 3. **Architecture dans PALABRE NUMÉRIQUE**
    - Ajouter, si l'audit le permet, un fournisseur optionnel nommé `SomaliResearchSTTProvider` derrière l'interface commune des fournisseurs audio.
-   - Garder le fournisseur existant fondé sur faster-whisper comme solution de repli.
+   - **Conserver obligatoirement le fournisseur existant fondé sur faster-whisper comme moteur principal de transcription.** Ne pas le supprimer, le remplacer ni le désactiver.
+   - VoiceStudio et tout composant issu du projet de recherche somali restent facultatifs et complémentaires ; ils ne peuvent être évalués qu'en comparaison avec Whisper, sans modifier le fonctionnement par défaut.
+   - Toute activation éventuelle d'un moteur expérimental doit être explicite, réversible et accompagnée d'un mécanisme de retour immédiat à faster-whisper.
    - Ne pas faire dépendre l'application principale de ce dépôt tant que son exécution n'est pas reproductible.
    - Conserver les enregistrements originaux et associer chaque transcription à la provenance du moteur, sa version et son statut de validation humaine.
 
@@ -49,4 +51,4 @@ Le README marque la collecte d'enregistrements comme accomplie, mais les étapes
 
 ## État
 
-Cette note prépare l'évaluation. Elle n'affirme pas que le code source a été importé, que le modèle fonctionne, ni qu'un benchmark a été exécuté. Les tests et l'intégration applicative restent à réaliser après l'audit technique et juridique.
+Décision d'architecture : faster-whisper reste le moteur principal et le comportement par défaut de PALABRE NUMÉRIQUE. VoiceStudio et le projet Somali STT sont des pistes complémentaires et facultatives. Cette note prépare l'évaluation. Elle n'affirme pas que le code source a été importé, que le modèle fonctionne, ni qu'un benchmark a été exécuté. Les tests et l'intégration applicative restent à réaliser après l'audit technique et juridique.
