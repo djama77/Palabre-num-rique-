@@ -36,7 +36,7 @@ class VoiceStudioClientTests(unittest.TestCase):
         self.assertEqual(audio, b"fake-mp3")
         args = request.call_args.args
         self.assertEqual(args[0], "http://127.0.0.1:3900/v1/audio/speech")
-        self.assertIn(b"Texte validÃ©", args[1])
+        self.assertIn("Texte validé".encode("utf-8"), args[1])
 
     def test_transcription_validates_extension_before_request(self):
         with tempfile.TemporaryDirectory() as folder:
