@@ -6,6 +6,16 @@ const palabreDb=window.supabase.createClient(PALABRE_SUPABASE_URL,PALABRE_PUBLIS
 
 const cloud=(id)=>document.getElementById(id);
 let palabreUser=null;
+
+function palabreAuthMessage(error){
+ const message=String(error?.message||"");
+ if(/invalid login credentials/i.test(message))return "Identifiants incorrects ou compte inexistant.";
+ if(/email not confirmed/i.test(message))return "Confirmez votre adresse e-mail avant de vous connecter.";
+ if(/already registered|user already exists/i.test(message))return "Cette adresse e-mail possède déjà un compte. Essayez de vous connecter.";
+ if(/password.*(weak|short|at least)/i.test(message))return "Choisissez un mot de passe plus robuste.";
+ if(/rate limit|too many requests/i.test(message))return "Trop de tentatives. Attendez quelques minutes avant de réessayer.";
+ return "Authentification impossible. Vérifiez les informations saisies et la configuration Supabase.";
+}
 async function palabreRefreshAuth(){
  const {data}=await palabreDb.auth.getUser();
  palabreUser=data.user;
@@ -45,7 +55,7 @@ cloud("cloud-save").onclick=async()=>{
  try{
   const {error:upload}=await palabreDb.storage.from(PALABRE_AUDIO_BUCKET).upload(path,audio,{contentType:mime,upsert:false});
   if(upload)throw upload;
-  const {error:insert}=await palabreDb.from("palabre_records").insert({owner_id:palabreUser.id,title_so:title,audio_path:path,consent_recorded:true,publication_authorized:false,status:"draft"});
+  const {error:insert}=await palabreDb.from("palabre_records").insert({owner_id:palabreUser.id,title_so:title,audio_path:path,consent_recorded:true});
   if(insert){await palabreDb.storage.from(PALABRE_AUDIO_BUCKET).remove([path]);throw insert}
   cloud("cloud-status").textContent="Discussion sauvegardée dans votre espace privé.";
   await palabreList();

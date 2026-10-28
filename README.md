@@ -75,6 +75,12 @@ Des workflows GitHub Actions sont présents dans `.github/workflows/`. Leur réu
 
 ## Supabase et déploiement web
 
+Un guide de mise en place et une migration SQL de base sont disponibles :
+- [Guide de configuration, sécurité et tests Supabase](docs/SUPABASE_SETUP.md)
+- `supabase/migrations/20261028000000_palabre_cloud_baseline.sql` — table des récits, RLS et bucket audio privé.
+
+La migration doit être revue avant application dans le bon projet Supabase. Ne pas l'exécuter à l'aveugle sur une base déjà utilisée.
+
 Le frontend comprend du code de connexion Supabase. L’exemple de configuration se trouve dans `frontend/heritage/supabase-config.example.js`. Pour un déploiement Vercel ou un autre hébergeur, identifier d’abord le point d’entrée web, les variables publiques attendues et le schéma de base de données réellement déployé.
 
 **Sécurité :** utiliser uniquement une clé publique/publishable côté navigateur ; ne jamais publier une clé `service_role`, un secret serveur ou une clé ElevenLabs. Mettre en place les politiques **Row Level Security (RLS)** et tester, pour chaque rôle, la connexion, l’enregistrement, la lecture, la sauvegarde et les restrictions d’accès avant une ouverture publique.
