@@ -27,9 +27,10 @@ class APITests(unittest.TestCase):
         self.assertEqual(result["records"], [])
 
     def test_published_record(self):
-        r = HeritageRecord("public1", "Sheeko", "private.wav", True)
-        r.attach_transcription("Qoraal", "collector")
+        r = HeritageRecord("public1", "Sheeko", "private.wav", True, collector_id="collector")
+        r.attach_transcription("Qoraal", "transcriber")
         r.translation_fr = "Traduction relue"
+        r.validate_by_sage("sage-1", role="sage")
         r.publish("admin", publication_authorized=True)
         self.store.save(r)
         status, result = public_response(self.store, "/api/heritage/public/public1")
