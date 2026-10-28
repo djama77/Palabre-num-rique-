@@ -33,6 +33,11 @@ class WebAppTests(unittest.TestCase):
                 with urlopen(base + "/", timeout=3) as response:
                     self.assertEqual(response.status, 200)
                     self.assertIn(b"Palabre", response.read())
+                    csp = response.headers.get("Content-Security-Policy", "")
+                    self.assertIn("https://cdn.jsdelivr.net", csp)
+                    self.assertIn("https://ymcptudijtrnpchwvkqe.supabase.co", csp)
+                    self.assertIn("media-src 'self' blob:", csp)
+                    self.assertIn("frame-ancestors 'none'", csp)
                 with urlopen(base + "/api/heritage/public", timeout=3) as response:
                     self.assertEqual(response.status, 200)
                     self.assertIn(b'"records": []', response.read())
