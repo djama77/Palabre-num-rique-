@@ -110,6 +110,24 @@ set search_path = '' as $$
   );
 $$;
 
+create or replace function public.is_record_owner(rid uuid)
+returns boolean language sql stable security definer
+set search_path = '' as $
+  select exists (
+    select 1 from public.records r
+    where r.id = rid and r.collector_id = (select auth.uid())
+  );
+$;
+
+create or replace function public.is_assigned(rid uuid)
+returns boolean language sql stable security definer
+set search_path = '' as $
+  select exists (
+    select 1 from public.assignments a
+    where a.record_id = rid and a.user_id = (select auth.uid())
+  );
+$;
+
 create or replace function public.has_valid_consent(rid uuid, s text)
 returns boolean language sql stable security definer
 set search_path = '' as $$
@@ -154,11 +172,15 @@ $$;
 
 revoke all on function public.has_role(public.app_role) from public, anon;
 revoke all on function public.has_valid_consent(uuid, text) from public, anon;
+revoke all on function public.is_record_owner(uuid) from public, anon;
+revoke all on function public.is_assigned(uuid) from public, anon;
 revoke all on function public.is_publishable(uuid) from public, anon;
 revoke all on function public.is_public_record(uuid) from public;
 grant execute on function public.is_public_record(uuid) to anon, authenticated;
 grant execute on function public.has_role(public.app_role) to authenticated;
 grant execute on function public.has_valid_consent(uuid, text) to authenticated;
+grant execute on function public.is_record_owner(uuid) to authenticated;
+grant execute on function public.is_assigned(uuid) to authenticated;
 grant execute on function public.is_publishable(uuid) to authenticated;
 
 create or replace function public.guard_publish()
@@ -232,7 +254,7 @@ using (
   collector_id = (select auth.uid())
   or public.has_role('admin'::public.app_role)
   or (public.has_role('sage'::public.app_role) and status in ('revision','soumis','approuve'))
-  or exists (select 1 from public.assignments a where a.record_id = id and a.user_id = (select auth.uid()))
+  or public.is_assigned(id)
 );
 drop policy if exists records_insert_collector_draft on public.records;
 create policy records_insert_collector_draft on public.records for insert to authenticated
@@ -252,7 +274,7 @@ using (collector_id = (select auth.uid()) and status = 'brouillon');
 drop policy if exists assignments_read_related on public.assignments;
 create policy assignments_read_related on public.assignments for select to authenticated
 using (user_id = (select auth.uid()) or public.has_role('admin'::public.app_role)
-  or exists (select 1 from public.records r where r.id = record_id and r.collector_id = (select auth.uid())));
+  or public.is_record_owner(record_id));
 -- Pas de policy client INSERT/UPDATE/DELETE : les affectations sont faites par un backend de confiance.
 
 drop policy if exists consents_owner_read on public.consents;
@@ -274,7 +296,7 @@ with check (recorded_by = (select auth.uid()) and exists (
 drop policy if exists audio_select_related on public.audio_assets;
 create policy audio_select_related on public.audio_assets for select to authenticated
 using (exists (select 1 from public.records r where r.id = record_id and r.collector_id = (select auth.uid()))
-  or exists (select 1 from public.assignments a where a.record_id = record_id and a.user_id = (select auth.uid()))
+  or public.is_assigned(record_id)
   or public.has_role('admin'::public.app_role));
 drop policy if exists audio_insert_with_consent on public.audio_assets;
 create policy audio_insert_with_consent on public.audio_assets for insert to authenticated
@@ -351,8 +373,7 @@ drop policy if exists audio_prive_read_owner_or_assignment on storage.objects;
 create policy audio_prive_read_owner_or_assignment on storage.objects for select to authenticated
 using (bucket_id = 'audio-prive' and (
   (storage.foldername(name))[1] = (select auth.uid())::text
-  or exists (select 1 from public.assignments a where a.record_id = ((storage.foldername(name))[2])::uuid
-    and a.user_id = (select auth.uid()))
+  or public.is_assigned(((storage.foldername(name))[2])::uuid)
   or public.has_role('admin'::public.app_role)
 ));
 drop policy if exists audio_prive_delete_owner on storage.objects;
