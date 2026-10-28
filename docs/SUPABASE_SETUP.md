@@ -30,3 +30,30 @@ Le frontend `frontend/heritage/supabase-cloud.js` utilise Supabase Auth, la tabl
 - Tester l'inscription, la confirmation e-mail, la connexion, la déconnexion, l'upload, la lecture signée et la suppression d'un brouillon.
 - Tester les accès avec un second compte et en navigation privée.
 - Confirmer qu'aucun enregistrement n'est lisible sans autorisation.
+
+
+## Schéma cible V1 : gouvernance des récits
+
+Le fichier `supabase/migrations/20261028010000_palabre_schema_cible_v1.sql` propose le modèle métier détaillé demandé : rôles (collecteur, transcripteur, traducteur, Sage, admin, audit), récits, affectations, consentements par usage, fichiers audio privés, versions de texte, validations et journal d'audit.
+
+**Cette migration est une proposition de schéma cible, pas une migration à exécuter maintenant.** Elle ajoute les tables `records`, `assignments`, `consents`, `audio_assets`, `text_versions`, `reviews` et `audit_events`. Elle ne remplace pas la table `palabre_records` utilisée par le frontend actuel ; le frontend devra être adapté et testé avant toute mise en production.
+
+### Garde-fous prévus
+
+- Les récits sont privés par défaut ; le catalogue public ne montre que les récits publiés, avec consentement de diffusion actif et deux validations approuvées.
+- La vue publique utilise `security_invoker = true`, des politiques RLS dédiées et des droits de lecture limités par colonnes.
+- Les rôles ne sont pas attribuables depuis le navigateur ; leur attribution doit passer par un canal administratif fiable.
+- L'auto-validation est refusée et le réviseur doit être l'utilisateur connecté avec le rôle Sage.
+- La révocation du consentement retire le récit du catalogue et écrit un événement d'audit.
+- Le bucket `audio-prive` est privé ; l'accès aux objets est limité selon l'identité, l'affectation et le consentement d'archivage.
+- Les URLs audio publiques temporaires ne sont pas encore générées : une fonction serveur devra vérifier le statut, le consentement et les validations avant de créer une URL signée.
+
+### Avant toute application
+
+1. Faire l'inventaire du schéma, des vues, des triggers et des politiques RLS déjà présents dans le projet Supabase cible.
+2. Tester la migration sur un projet de test ou une branche de base de données.
+3. Vérifier les droits réels du rôle `anon` et du rôle `authenticated`, notamment le catalogue public et les fichiers audio.
+4. Tester les cas de refus : pas de consentement, consentement révoqué, une validation manquante, auto-validation, accès par un autre compte.
+5. Adapter le frontend à ce nouveau modèle et faire passer les tests avant de planifier le déploiement.
+
+Le schéma actuel n'a pas encore été inventorié à distance ; aucune migration de ce schéma cible n'a été appliquée à un projet Supabase distant.
