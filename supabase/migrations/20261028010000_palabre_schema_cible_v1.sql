@@ -389,4 +389,8 @@ grant insert (record_id, kind, decision, motive, reviewer_id) on public.reviews 
 
 grant select on public.audit_events to authenticated;
 
+-- Droits en colonnes pour le catalogue public uniquement.
+grant select (id, title, language, locality, status, visibility) on public.records to anon;
+grant select (record_id, kind, lang, body, human_reviewed, created_at) on public.text_versions to anon;
+
 commit;
