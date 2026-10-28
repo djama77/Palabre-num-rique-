@@ -136,9 +136,27 @@ set search_path = '' as $$
   );
 $$;
 
+-- Fonction minimale utilisée par le catalogue public : elle ne renvoie qu'un booléen.
+create or replace function public.is_public_record(rid uuid)
+returns boolean language sql stable security definer
+set search_path = '' as $
+  select exists (
+    select 1 from public.records r
+    where r.id = rid and r.status = 'publie' and r.visibility = 'public'
+      and exists (select 1 from public.consents c where c.record_id = r.id
+        and c.revoked_at is null and coalesce(c.scope ->> 'diffusion','false') = 'true')
+      and (select rv.decision from public.reviews rv where rv.record_id = r.id
+        and rv.kind = 'culturelle' order by rv.created_at desc limit 1) = 'approuve'
+      and (select rv.decision from public.reviews rv where rv.record_id = r.id
+        and rv.kind = 'diffusion' order by rv.created_at desc limit 1) = 'approuve'
+  );
+$;
+
 revoke all on function public.has_role(public.app_role) from public, anon;
 revoke all on function public.has_valid_consent(uuid, text) from public, anon;
 revoke all on function public.is_publishable(uuid) from public, anon;
+revoke all on function public.is_public_record(uuid) from public;
+grant execute on function public.is_public_record(uuid) to anon, authenticated;
 grant execute on function public.has_role(public.app_role) to authenticated;
 grant execute on function public.has_valid_consent(uuid, text) to authenticated;
 grant execute on function public.is_publishable(uuid) to authenticated;
@@ -296,27 +314,14 @@ using (public.has_role('audit'::public.app_role) or public.has_role('admin'::pub
 -- Catalogue public : vue invoker + politiques RLS publiques étroitement limitées.
 drop policy if exists records_public_catalogue on public.records;
 create policy records_public_catalogue on public.records for select to anon, authenticated
-using (status = 'publie' and visibility = 'public'
-  and exists (select 1 from public.consents c where c.record_id = id
-    and c.revoked_at is null and coalesce(c.scope ->> 'diffusion','false') = 'true')
-  and (select rv.decision from public.reviews rv where rv.record_id = id and rv.kind = 'culturelle'
-       order by rv.created_at desc limit 1) = 'approuve'
-  and (select rv.decision from public.reviews rv where rv.record_id = id and rv.kind = 'diffusion'
-       order by rv.created_at desc limit 1) = 'approuve');
+using (public.is_public_record(id));
 
 drop policy if exists texts_public_catalogue on public.text_versions;
 create policy texts_public_catalogue on public.text_versions for select to anon, authenticated
-using (human_reviewed = true and exists (
-  select 1 from public.records r where r.id = record_id and r.status = 'publie'
-    and r.visibility = 'public'
-    and exists (select 1 from public.consents c where c.record_id = r.id and c.revoked_at is null
-      and coalesce(c.scope ->> 'diffusion','false') = 'true')
-    and (select rv.decision from public.reviews rv where rv.record_id = r.id and rv.kind = 'culturelle'
-         order by rv.created_at desc limit 1) = 'approuve'
-    and (select rv.decision from public.reviews rv where rv.record_id = r.id and rv.kind = 'diffusion'
-         order by rv.created_at desc limit 1) = 'approuve'
-));
-grant select on public.records, public.text_versions to anon, authenticated;
+using (human_reviewed = true and public.is_public_record(record_id));
+grant select on public.records, public.text_versions to authenticated;
+grant select (id, title, language, locality, status, visibility) on public.records to anon;
+grant select (record_id, kind, lang, body, human_reviewed, created_at) on public.text_versions to anon;
 
 create or replace view public.public_records with (security_invoker = true) as
 select r.id, r.title, r.language, r.locality,
