@@ -139,7 +139,7 @@ $$;
 -- Fonction minimale utilisée par le catalogue public : elle ne renvoie qu'un booléen.
 create or replace function public.is_public_record(rid uuid)
 returns boolean language sql stable security definer
-set search_path = '' as $
+set search_path = '' as $$
   select exists (
     select 1 from public.records r
     where r.id = rid and r.status = 'publie' and r.visibility = 'public'
@@ -150,7 +150,7 @@ set search_path = '' as $
       and (select rv.decision from public.reviews rv where rv.record_id = r.id
         and rv.kind = 'diffusion' order by rv.created_at desc limit 1) = 'approuve'
   );
-$;
+$$;
 
 revoke all on function public.has_role(public.app_role) from public, anon;
 revoke all on function public.has_valid_consent(uuid, text) from public, anon;
