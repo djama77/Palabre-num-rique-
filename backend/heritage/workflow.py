@@ -65,6 +65,9 @@ class HeritageRecord:
         self.access_level = "restricted"
         if self.status == Status.PUBLISHED:
             self.status = Status.DRAFT
+        # A revoked consent invalidates the previous approval as well.
+        self.validated_by = None
+        self.validated_at = None
         self.history.append(("consent_revoked", actor))
 
     def public_payload(self):
