@@ -359,4 +359,34 @@ drop policy if exists audio_prive_delete_owner on storage.objects;
 create policy audio_prive_delete_owner on storage.objects for delete to authenticated
 using (bucket_id = 'audio-prive' and (storage.foldername(name))[1] = (select auth.uid())::text);
 
+
+-- Droits SQL explicites : RLS filtre les lignes, les GRANT limitent les opérations/colonnes.
+revoke all on public.user_roles, public.records, public.assignments, public.consents,
+  public.audio_assets, public.text_versions, public.reviews, public.audit_events
+from anon, authenticated;
+
+grant select on public.user_roles to authenticated;
+grant select on public.records to authenticated;
+grant insert (title, language, locality, recorded_on, holder_label, collector_id)
+  on public.records to authenticated;
+grant update (title, language, locality, recorded_on, holder_label, updated_at)
+  on public.records to authenticated;
+grant delete on public.records to authenticated;
+
+grant select on public.assignments to authenticated;
+grant select on public.consents to authenticated;
+grant insert (record_id, scope, recorded_by) on public.consents to authenticated;
+grant update (revoked_at) on public.consents to authenticated;
+
+grant select on public.audio_assets to authenticated;
+grant insert (record_id, storage_path, duration_s) on public.audio_assets to authenticated;
+
+grant select on public.text_versions to authenticated;
+grant insert (record_id, kind, lang, body, origin, author_id) on public.text_versions to authenticated;
+
+grant select on public.reviews to authenticated;
+grant insert (record_id, kind, decision, motive, reviewer_id) on public.reviews to authenticated;
+
+grant select on public.audit_events to authenticated;
+
 commit;
