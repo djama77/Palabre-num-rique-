@@ -30,7 +30,16 @@ class WebHandler(Handler):
             self.send_header("Content-Type", "text/html; charset=utf-8")
             self.send_header("Cache-Control", "no-store")
             self.send_header("X-Content-Type-Options", "nosniff")
-            self.send_header("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src 'self'; base-uri 'none'; form-action 'none'")
+            self.send_header(
+                "Content-Security-Policy",
+                "default-src 'none'; "
+                "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+                "style-src 'self' 'unsafe-inline'; "
+                "connect-src 'self' https://ymcptudijtrnpchwvkqe.supabase.co wss://ymcptudijtrnpchwvkqe.supabase.co; "
+                "media-src 'self' blob: https://ymcptudijtrnpchwvkqe.supabase.co; "
+                "img-src 'self' data: blob:; "
+                "base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
+            )
             self.send_header("Content-Length", str(len(body)))
             self.end_headers()
             self.wfile.write(body)
