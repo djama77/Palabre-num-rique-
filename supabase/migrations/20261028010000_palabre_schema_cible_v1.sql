@@ -330,13 +330,7 @@ select r.id, r.title, r.language, r.locality,
   (select t.body from public.text_versions t where t.record_id = r.id and t.kind = 'traduction'
     and t.lang = 'fr' and t.human_reviewed order by t.created_at desc limit 1) as traduction_fr
 from public.records r
-where r.status = 'publie' and r.visibility = 'public'
-  and exists (select 1 from public.consents c where c.record_id = r.id and c.revoked_at is null
-    and coalesce(c.scope ->> 'diffusion','false') = 'true')
-  and (select rv.decision from public.reviews rv where rv.record_id = r.id and rv.kind = 'culturelle'
-       order by rv.created_at desc limit 1) = 'approuve'
-  and (select rv.decision from public.reviews rv where rv.record_id = r.id and rv.kind = 'diffusion'
-       order by rv.created_at desc limit 1) = 'approuve';
+where public.is_public_record(r.id);
 grant select on public.public_records to anon, authenticated;
 
 -- Bucket privé : objets rangés sous <user_id>/<record_id>/<filename>.
