@@ -112,21 +112,21 @@ $$;
 
 create or replace function public.is_record_owner(rid uuid)
 returns boolean language sql stable security definer
-set search_path = '' as $
+set search_path = '' as $$
   select exists (
     select 1 from public.records r
     where r.id = rid and r.collector_id = (select auth.uid())
   );
-$;
+$$;
 
 create or replace function public.is_assigned(rid uuid)
 returns boolean language sql stable security definer
-set search_path = '' as $
+set search_path = '' as $$
   select exists (
     select 1 from public.assignments a
     where a.record_id = rid and a.user_id = (select auth.uid())
   );
-$;
+$$;
 
 create or replace function public.has_valid_consent(rid uuid, s text)
 returns boolean language sql stable security definer
