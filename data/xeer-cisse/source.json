@@ -2,6 +2,11 @@
   "id": "xeer-dhaqameed-pdf",
   "title": "Xeer Dhaqameed — document de référence fourni",
   "original_filename": "xeer_dhaqameed.pdf",
+  "repository_files": [
+    "extracted-xeer_dhaqameed-compressed.pdf",
+    "extracted-xeer_dhaqameed (1)-compressed.pdf",
+    "extracted-xeer_dhaqameed (2)-compressed.pdf"
+  ],
   "language": "Somali (à confirmer par vérification du document)",
   "themes": [
     "patrimoine oral",
@@ -12,7 +17,9 @@
   "integration_target": "Palabre Numérique / Xeer-Yaqaan",
   "status": {
     "file_received": true,
-    "pdf_added_to_repository": false,
+    "pdf_added_to_repository": true,
+    "pdf_parts_size_check": "passed: all three files are below 25 MB",
+    "pdf_page_count_and_sequence": "pending manual verification against the original",
     "ocr": "pending",
     "human_review": "pending",
     "copyright_and_redistribution_permission": "to_confirm"
@@ -25,8 +32,9 @@
   ],
   "rules": [
     "Ne pas considérer l'OCR comme validé avant comparaison avec le PDF original.",
-    "Ne pas ajouter le PDF complet au dépôt public avant confirmation du droit de diffusion.",
+    "Ne pas diffuser publiquement les PDF avant confirmation du droit de reproduction et de diffusion.",
     "Ne pas inventer le titre exact, l'auteur, la date ou l'éditeur si ces éléments ne sont pas confirmés dans le document.",
-    "Ne jamais laisser le glossaire ou le modèle corriger automatiquement une transcription audio."
+    "Ne jamais laisser le glossaire ou le modèle corriger automatiquement une transcription audio.",
+    "Vérifier le nombre de pages et l'ordre des trois fichiers PDF avant de générer le corpus OCR."
   ]
 }
