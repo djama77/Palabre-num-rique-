@@ -17,7 +17,7 @@ Installer les dépendances optionnelles dans un environnement virtuel :
 
 Si une connexion Internet est autorisée pendant la préparation, télécharger une fois le modèle vers un dossier local avec le client Hugging Face installé :
 
-    hf download Ogaal-Labs/Ogaal-ASR --local-dir C:\\Models\\Ogaal-ASR
+    hf download Ogaal-Labs/Ogaal-ASR --local-dir C:\Models\Ogaal-ASR
 
 Transférer ensuite ce dossier sur le PC hors ligne. Au démarrage, l'application n'effectue pas de téléchargement.
 
@@ -34,7 +34,8 @@ Le lexique de départ dans backend/heritage/somali_lexicon.json est volontaireme
 - somastllc/somali-language-standard pour l'orthographe et la terminologie ;
 - yahyaqowle/Afsoomali pour le vocabulaire ;
 - maktabadda/erey.ga pour les mots et expressions culturelles ;
-- somastllc/somali-nlp-corpus pour des exemples textuels dédupliqués.\n- somastllc/SomNLP-Translate et asmelashteka/HornMT sont conservés comme pistes de recherche pour d’éventuels corpus parallèles, mais ne sont pas intégrés ici : cette modification enrichit uniquement les mots somalis et n’ajoute aucune traduction.
+- somastllc/somali-nlp-corpus pour des exemples textuels dédupliqués.
+- somastllc/SomNLP-Translate et asmelashteka/HornMT sont conservés comme pistes de recherche pour d’éventuels corpus parallèles, mais ne sont pas intégrés ici : cette modification enrichit uniquement les mots somalis et n’ajoute aucune traduction.
 
 Aucune base tierce complète n'est copiée dans le dépôt par cette modification. Le lexique sert uniquement d'indice lexical de reconnaissance et d'annotation. Il ne normalise pas la parole originale ni ne transforme une variante dialectale en erreur.
 
