@@ -28,11 +28,13 @@ Le projet réunit une interface de collecte et de consultation, un backend Pytho
 | `backend/heritage/api.py` | API de consultation des récits publics |
 | `backend/heritage/storage.py` | Persistance locale SQLite |
 | `backend/heritage/workflow.py` | Cycle de vie et règles des récits |
-| `backend/heritage/whisper_transcription.py` | Module de transcription locale Whisper |
+| `backend/heritage/whisper_transcription.py` | Transcription locale faster-whisper avec lexique somali et option Ogaal-ASR |
 | `backend/heritage/local_transcription.py` | Traitement de transcription locale |
 | `backend/heritage/local_narration.py` | Fonctions de narration locale |
 | `backend/voice/elevenlabs_tts.py` | Adaptateur Python ElevenLabs (pas une route web de production) |
 | `elevenlabs-demo/index.html` | Démonstrateur de voix de navigateur, sans appel ElevenLabs |
+| `backend/heritage/somali_lexicon.json` | Petit lexique somali local pour aider la reconnaissance sans réécrire le texte |
+| `docs/OGAAL_ASR_SOMALI.md` | Configuration hors ligne d’Ogaal-ASR et enrichissement lexical somali |
 | `docs/` | Architecture, API, sécurité, stockage, essais et guides |
 | `.github/workflows/` | Tests automatisés GitHub Actions |
 
@@ -111,7 +113,7 @@ La transcription ou la traduction automatique **ne constitue jamais une validati
 
 ## Documentation
 
-Consulter [l’architecture vocale](docs/ARCHITECTURE_PALABRE_VOIX.md), [l’API](docs/API_PATRIMOINE.md), [le stockage](docs/STOCKAGE_PATRIMOINE.md), [l’interface locale](docs/INTERFACE_WEB_LOCALE.md), [la transcription somalie](docs/WHISPER_SOMALI.md), [l’intégration ElevenLabs](docs/ELEVENLABS_INTEGRATION.md) et [la recette audio](docs/RECETTE_AUDIO.md).
+Consulter [l’intégration locale Ogaal-ASR et le lexique somali](docs/OGAAL_ASR_SOMALI.md), [l’architecture vocale](docs/ARCHITECTURE_PALABRE_VOIX.md), [l’API](docs/API_PATRIMOINE.md), [le stockage](docs/STOCKAGE_PATRIMOINE.md), [l’interface locale](docs/INTERFACE_WEB_LOCALE.md), [la transcription somalie](docs/WHISPER_SOMALI.md), [l’intégration ElevenLabs](docs/ELEVENLABS_INTEGRATION.md) et [la recette audio](docs/RECETTE_AUDIO.md).
 
 ## Projet
 
