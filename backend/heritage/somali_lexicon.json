@@ -1,0 +1,160 @@
+{
+  "schema_version": 1,
+  "language": "so",
+  "description": "Petit lexique patrimonial initial. Les mots servent d'indice au moteur et ne corrigent jamais automatiquement le texte.",
+  "entries": [
+    {
+      "word": "Af-Soomaali",
+      "variants": [
+        "af soomaali",
+        "af-soomaali"
+      ],
+      "category": "langue"
+    },
+    {
+      "word": "Soomaali",
+      "variants": [
+        "somali"
+      ],
+      "category": "langue"
+    },
+    {
+      "word": "sheeko",
+      "variants": [
+        "sheekooyin",
+        "sheekada",
+        "sheekooyinka"
+      ],
+      "category": "patrimoine"
+    },
+    {
+      "word": "dhaqan",
+      "variants": [
+        "dhaqanka",
+        "dhaqameed"
+      ],
+      "category": "patrimoine"
+    },
+    {
+      "word": "hidde",
+      "variants": [
+        "hidde-dhaqan",
+        "hiddo"
+      ],
+      "category": "patrimoine"
+    },
+    {
+      "word": "dhaxal",
+      "variants": [
+        "dhaxalka"
+      ],
+      "category": "patrimoine"
+    },
+    {
+      "word": "maahmaah",
+      "variants": [
+        "maahmaahyo",
+        "maahmaahda"
+      ],
+      "category": "oralité"
+    },
+    {
+      "word": "xikmad",
+      "variants": [
+        "xikmado"
+      ],
+      "category": "oralité"
+    },
+    {
+      "word": "abwaan",
+      "variants": [
+        "abwaanno",
+        "abwaanka"
+      ],
+      "category": "oralité"
+    },
+    {
+      "word": "gabay",
+      "variants": [
+        "gabayada",
+        "gabayga"
+      ],
+      "category": "oralité"
+    },
+    {
+      "word": "odayaal",
+      "variants": [
+        "oday",
+        "odayga",
+        "odayaasha"
+      ],
+      "category": "personnes"
+    },
+    {
+      "word": "aqoon",
+      "variants": [
+        "aqoonta"
+      ],
+      "category": "oralité"
+    },
+    {
+      "word": "abtirsiinyo",
+      "variants": [
+        "abtirsiin"
+      ],
+      "category": "patrimoine"
+    },
+    {
+      "word": "reer",
+      "variants": [
+        "reerka",
+        "reeraha"
+      ],
+      "category": "communauté"
+    },
+    {
+      "word": "nabadda",
+      "variants": [
+        "nabad",
+        "nabadeed"
+      ],
+      "category": "valeurs"
+    },
+    {
+      "word": "wadajir",
+      "variants": [
+        "wadajirka"
+      ],
+      "category": "valeurs"
+    },
+    {
+      "word": "xusuus",
+      "variants": [
+        "xusuusta"
+      ],
+      "category": "patrimoine"
+    },
+    {
+      "word": "taariikh",
+      "variants": [
+        "taariikhda"
+      ],
+      "category": "patrimoine"
+    },
+    {
+      "word": "dhaqan-celis",
+      "variants": [
+        "dhaqancelis"
+      ],
+      "category": "patrimoine"
+    },
+    {
+      "word": "Ali-Sabieh",
+      "variants": [
+        "Cali Sabiix",
+        "Cali-Sabiix"
+      ],
+      "category": "lieu"
+    }
+  ]
+}

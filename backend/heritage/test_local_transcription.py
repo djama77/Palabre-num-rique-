@@ -1,12 +1,13 @@
 import io
 import json
 import unittest
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 from local_transcription import local_post
+
 
 class LocalTranscriptionTests(unittest.TestCase):
     def handler(self, *, path="/api/local/transcrire", origin="http://127.0.0.1:8765",
-                consent="oui", client="127.0.0.1"):
+                consent="oui", client="127.0.0.1", extension=".wav"):
         h = Mock()
         h.path = path
         h.client_address = (client, 1000)
@@ -15,7 +16,7 @@ class LocalTranscriptionTests(unittest.TestCase):
             "Host": "127.0.0.1:8765",
             "Origin": origin,
             "X-Consentement": consent,
-            "X-Audio-Extension": ".wav",
+            "X-Audio-Extension": extension,
             "Content-Type": "application/octet-stream",
             "Content-Length": "4",
         }
@@ -48,6 +49,23 @@ class LocalTranscriptionTests(unittest.TestCase):
         h.headers["Content-Length"] = str(101 * 1024 * 1024)
         local_post(h)
         h.send_response.assert_called_with(413)
+
+    def test_webm_upload_returns_silent_somali_metadata(self):
+        h = self.handler(extension=".webm")
+        result = {
+            "texte": "Tani waa sheeko",
+            "segments": [],
+            "mots_somali": ["sheeko"],
+            "moteur": "ogaal",
+        }
+        with patch("local_transcription.transcrire_somali", return_value=result):
+            local_post(h)
+        h.send_response.assert_called_with(200)
+        payload = json.loads(h.wfile.getvalue().decode("utf-8"))
+        self.assertEqual(payload["texte"], "Tani waa sheeko")
+        self.assertEqual(payload["mots_somali"], ["sheeko"])
+        self.assertEqual(payload["moteur"], "ogaal")
+
 
 if __name__ == "__main__":
     unittest.main()

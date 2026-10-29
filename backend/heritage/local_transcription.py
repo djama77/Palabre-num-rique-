@@ -1,13 +1,13 @@
 """Private, loopback-only transcription endpoint for the local web application."""
 import json
-import os
 import tempfile
 from pathlib import Path
 from urllib.parse import urlsplit
 
 from whisper_transcription import transcrire_somali, MAX_AUDIO_BYTES
 
-EXTENSIONS = {".wav", ".mp3", ".m4a", ".flac", ".ogg", ".opus"}
+EXTENSIONS = {".wav", ".mp3", ".m4a", ".flac", ".ogg", ".opus", ".webm"}
+
 
 def local_post(handler):
     """Handle a local upload without adding a public administrative API."""
@@ -57,7 +57,13 @@ def local_post(handler):
                 tmp.write(chunk)
                 remaining -= len(chunk)
         result = transcrire_somali(path)
-        return reply(200, {"texte": result["texte"], "segments": result["segments"]})
+        # Extra lexical metadata is consumed silently by the UI; the transcript is unchanged.
+        return reply(200, {
+            "texte": result["texte"],
+            "segments": result["segments"],
+            "mots_somali": result.get("mots_somali", []),
+            "moteur": result.get("moteur", "faster-whisper"),
+        })
     except Exception:
         return reply(500, {"error": "Transcription impossible. Vérifiez le fichier et l'installation du moteur local."})
     finally:
