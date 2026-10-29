@@ -20,7 +20,7 @@ def validate_audio(path):
     return audio
 
 def transcrire_somali(audio_path, *, model_name="small", device="cpu",
-                      compute_type="int8"):
+                      compute_type="int8", initial_prompt=None):
     """Return timestamped segments, detected language and Somali text.
 
     Caller must establish informed consent, access authorization, and
@@ -34,10 +34,15 @@ def transcrire_somali(audio_path, *, model_name="small", device="cpu",
             "Installer faster-whisper : python -m pip install faster-whisper"
         ) from exc
     model = WhisperModel(model_name, device=device, compute_type=compute_type)
-    segments, info = model.transcribe(
-        str(audio), language="so", task="transcribe", beam_size=5,
-        vad_filter=True
-    )
+    options = {
+        "language": "so", "task": "transcribe", "beam_size": 5,
+        "vad_filter": True,
+    }
+    if initial_prompt and initial_prompt.strip():
+        # A verified glossary may help recognition; it must never auto-correct
+        # the resulting transcript. Human listening/review remains mandatory.
+        options["initial_prompt"] = initial_prompt.strip()
+    segments, info = model.transcribe(str(audio), **options)
     result = []
     for segment in segments:
         text = segment.text.strip()
@@ -55,7 +60,8 @@ def transcrire_somali(audio_path, *, model_name="small", device="cpu",
         "texte": " ".join(part["texte"] for part in result)
     }
 
-def transcrire_brouillon(record, *, actor, audio_root, model_name="small"):
+def transcrire_brouillon(record, *, actor, audio_root, model_name="small",
+                         initial_prompt=None):
     """Transcribe a consenting draft whose audio is within a protected directory.
 
     This is a local trusted-backend helper, not an unauthenticated HTTP route.
@@ -72,7 +78,9 @@ def transcrire_brouillon(record, *, actor, audio_root, model_name="small"):
     path = (root / record.original_audio_path).resolve(strict=True)
     if not path.is_relative_to(root) or not path.is_file():
         raise PermissionError("Audio hors du répertoire autorisé")
-    result = transcrire_somali(path, model_name=model_name)
+    result = transcrire_somali(
+        path, model_name=model_name, initial_prompt=initial_prompt
+    )
     if not result["texte"]:
         raise ValueError("Aucune parole transcrite ; examen manuel requis")
     record.attach_transcription(result["texte"], actor)
