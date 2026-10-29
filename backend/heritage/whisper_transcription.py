@@ -5,6 +5,7 @@ Models download on first use. No recording is sent to a remote API.
 This module never approves or publishes heritage records.
 """
 from pathlib import Path
+import json
 
 ALLOWED_EXTENSIONS = {".wav", ".mp3", ".m4a", ".flac", ".ogg", ".opus"}
 MAX_AUDIO_BYTES = 100 * 1024 * 1024
@@ -18,6 +19,27 @@ def validate_audio(path):
     if audio.stat().st_size == 0 or audio.stat().st_size > MAX_AUDIO_BYTES:
         raise ValueError("Taille audio non autorisée (maximum 100 Mo)")
     return audio
+
+
+def charger_prompt_glossaire(glossary_path=None):
+    """Return only explicitly verified glossary terms for Whisper context."""
+    if glossary_path is None:
+        glossary_path = (
+            Path(__file__).resolve().parents[2]
+            / "data" / "xeer-cisse" / "glossaire.json"
+        )
+    try:
+        data = json.loads(Path(glossary_path).read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    terms = []
+    for item in data.get("terms", []) if isinstance(data, dict) else []:
+        if not isinstance(item, dict) or item.get("verification_status") != "verified":
+            continue
+        term = item.get("term")
+        if isinstance(term, str) and term.strip() and term.strip() not in terms:
+            terms.append(term.strip())
+    return ", ".join(terms) or None
 
 def transcrire_somali(audio_path, *, model_name="small", device="cpu",
                       compute_type="int8", initial_prompt=None):
@@ -34,6 +56,8 @@ def transcrire_somali(audio_path, *, model_name="small", device="cpu",
             "Installer faster-whisper : python -m pip install faster-whisper"
         ) from exc
     model = WhisperModel(model_name, device=device, compute_type=compute_type)
+    if initial_prompt is None:
+        initial_prompt = charger_prompt_glossaire()
     options = {
         "language": "so", "task": "transcribe", "beam_size": 5,
         "vad_filter": True,
