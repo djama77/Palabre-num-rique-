@@ -4,6 +4,7 @@ No recording is sent to a remote API. Models must already be installed locally.
 Transcription never approves or publishes heritage records.
 """
 import os
+from functools import lru_cache
 from pathlib import Path
 
 from somali_lexicon import enrich_result, vocabulary_prompt
@@ -30,6 +31,26 @@ def _ogaal_model_dir():
     return Path(__file__).resolve().parents[2] / "models" / "ogaal-asr"
 
 
+@lru_cache(maxsize=2)
+def _load_ogaal_pipeline(model_dir_text):
+    """Load and cache a local model so each upload does not reload large weights."""
+    try:
+        from transformers import pipeline
+    except ImportError as exc:
+        raise RuntimeError(
+            "Ogaal-ASR requiert Transformers et PyTorch installés localement."
+        ) from exc
+    model_dir = Path(model_dir_text)
+    return pipeline(
+        "automatic-speech-recognition",
+        model=str(model_dir),
+        tokenizer=str(model_dir),
+        feature_extractor=str(model_dir),
+        device=-1,
+        model_kwargs={"local_files_only": True},
+    )
+
+
 def _transcribe_ogaal(audio):
     """Run Ogaal-ASR from an already downloaded local model directory only."""
     model_dir = _ogaal_model_dir()
@@ -38,20 +59,7 @@ def _transcribe_ogaal(audio):
             "Modèle Ogaal local introuvable. Définissez PALABRE_OGAAL_MODEL_DIR "
             "ou utilisez PALABRE_ASR_ENGINE=whisper."
         )
-    try:
-        from transformers import pipeline
-    except ImportError as exc:
-        raise RuntimeError(
-            "Ogaal-ASR requiert Transformers et PyTorch installés localement."
-        ) from exc
-    asr = pipeline(
-        "automatic-speech-recognition",
-        model=str(model_dir),
-        tokenizer=str(model_dir),
-        feature_extractor=str(model_dir),
-        device=-1,
-        model_kwargs={"local_files_only": True},
-    )
+    asr = _load_ogaal_pipeline(str(model_dir.resolve()))
     prediction = asr(str(audio))
     text = str(prediction.get("text", "")).strip()
     return {
