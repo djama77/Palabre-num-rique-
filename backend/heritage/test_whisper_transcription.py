@@ -3,9 +3,22 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 from workflow import HeritageRecord, Status
-from whisper_transcription import validate_audio, transcrire_brouillon
+from whisper_transcription import validate_audio, transcrire_brouillon, charger_prompt_glossaire
 
 class WhisperTests(unittest.TestCase):
+    def test_glossary_prompt_uses_only_verified_terms(self):
+        with tempfile.TemporaryDirectory() as folder:
+            source = Path(folder) / "glossaire.json"
+            source.write_text(
+                '{"terms": ['
+                '{"term": "Xeer-Ciise", "verification_status": "verified"},'
+                '{"term": "Mag", "verification_status": "pending"},'
+                '{"term": "Ugaas", "verification_status": "verified"}'
+                ']}',
+                encoding="utf-8",
+            )
+            self.assertEqual(charger_prompt_glossaire(source), "Xeer-Ciise, Ugaas")
+
     def test_invalid_extension(self):
         with tempfile.TemporaryDirectory() as folder:
             p = Path(folder) / "sample.exe"
