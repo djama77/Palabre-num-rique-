@@ -46,3 +46,14 @@ Depuis la racine :
     python -m unittest discover -s backend/heritage -p "test_*.py" -v
 
 Les tests automatisés valident le comportement du lexique et les protections, mais ne mesurent pas la précision acoustique. Avant adoption définitive, comparer Ogaal et faster-whisper sur des extraits non sensibles avec autorisation, mesurer WER/CER et faire relire les résultats par des locuteurs somalis. Ne jamais utiliser des récits confidentiels pour une évaluation externe.
+
+
+## Comparer les deux moteurs sur Windows (calcul entièrement local)
+
+Préparer un court extrait somali non sensible, avec consentement, et un fichier texte de référence relu par un locuteur somali. Les deux modèles doivent déjà exister sur le disque. Le dossier faster-whisper doit être au format CTranslate2 ; le dossier Ogaal doit contenir les fichiers du modèle Hugging Face. Le script n'envoie ni audio ni transcription vers Internet.
+
+Depuis la racine du dépôt, dans l'environnement Python où les dépendances des deux moteurs sont installées :
+
+    python scripts/evaluate_somali_asr.py --audio "C:\audio\extrait.wav" --reference "C:\audio\reference.txt" --ogaal-model "C:\Models\Ogaal-ASR" --whisper-model "C:\Models\faster-whisper-small" --report "C:\audio\rapport-comparaison.json"
+
+Le rapport contient le WER (taux d'erreur de mots), le CER (taux d'erreur de caractères), la durée et les mots somalis repérés. Plus les taux WER/CER sont faibles, mieux la transcription correspond au texte de référence. Tester plusieurs locuteurs et plusieurs extraits avant de conclure ; ne jamais utiliser une transcription automatique comme vérité de référence. Le rapport ne conserve ni le son ni le texte de référence ; il stocke uniquement les mesures, les noms de fichiers et les mots somalis repérés.
