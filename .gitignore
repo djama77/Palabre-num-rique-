@@ -1,0 +1,9 @@
+# Local SQLite database and audio archives (generated at runtime)
+backend/heritage/*.sqlite3
+backend/heritage/*.sqlite3-*
+backend/heritage/audio/
+
+# Python bytecode and test caches
+__pycache__/
+*.py[cod]
+.pytest_cache/
