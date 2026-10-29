@@ -1,0 +1,5 @@
+# Optional dependencies for local Ogaal-ASR inference; install only if using the Ogaal model.
+# Install compatible CPU/GPU builds of PyTorch for the target computer first.
+torch>=2.2
+transformers>=4.40,<5
+torchaudio>=2.2
