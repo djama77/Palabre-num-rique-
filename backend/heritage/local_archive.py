@@ -138,3 +138,61 @@ def local_archive_post(handler):
         return reply(400, {"error": str(exc)})
     except Exception:
         return reply(500, {"error": "Enregistrement local impossible. Vérifiez le stockage SQLite et le dossier audio."})
+
+
+
+def local_archive_get(handler):
+    """List locally saved drafts or stream an archive's original audio."""
+    path = urlsplit(handler.path).path
+    if path == "/api/local/archives":
+        with handler.store._connect() as db:
+            rows = db.execute(
+                "SELECT id,title_so,status,transcript_so,original_audio_path,consent_recorded "
+                "FROM heritage_records ORDER BY rowid DESC LIMIT 200"
+            ).fetchall()
+        payload = json.dumps({"archives": [
+            {"id": row[0], "title_so": row[1], "status": row[2],
+             "transcript_so": row[3], "original_audio_path": row[4],
+             "consent_recorded": bool(row[5])}
+            for row in rows
+        ]}, ensure_ascii=False).encode("utf-8")
+        handler.send_response(200)
+        handler.send_header("Content-Type", "application/json; charset=utf-8")
+        handler.send_header("Cache-Control", "no-store")
+        handler.send_header("X-Content-Type-Options", "nosniff")
+        handler.send_header("Content-Length", str(len(payload)))
+        handler.end_headers()
+        handler.wfile.write(payload)
+        return True
+
+    prefix = "/api/local/archives/audio/"
+    if path.startswith(prefix):
+        record_id = path[len(prefix):]
+        if not record_id or any(ch not in "0123456789abcdef" for ch in record_id) or len(record_id) != 32:
+            handler.send_error(404)
+            return True
+        record = handler.store.get(record_id)
+        if record is None:
+            handler.send_error(404)
+            return True
+        root = Path(handler.store.db_path).resolve().parent
+        audio_path = (root / record.original_audio_path).resolve()
+        if root not in audio_path.parents or not audio_path.is_file():
+            handler.send_error(404)
+            return True
+        import mimetypes
+        payload_size = audio_path.stat().st_size
+        handler.send_response(200)
+        handler.send_header("Content-Type", mimetypes.guess_type(audio_path.name)[0] or "application/octet-stream")
+        handler.send_header("Content-Length", str(payload_size))
+        handler.send_header("Cache-Control", "no-store")
+        handler.send_header("X-Content-Type-Options", "nosniff")
+        handler.end_headers()
+        with audio_path.open("rb") as stream:
+            while True:
+                chunk = stream.read(1024 * 1024)
+                if not chunk:
+                    break
+                handler.wfile.write(chunk)
+        return True
+    return False
