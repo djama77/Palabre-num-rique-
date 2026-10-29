@@ -119,7 +119,10 @@ def main() -> int:
         "audio_filename": args.audio.name,
         "reference_filename": args.reference.name,
         "note": "Calcul local. Le rapport ne contient pas l'audio ni la transcription de référence.",
-        "results": results,
+        "results": [
+            {key: value for key, value in item.items() if key != "text"}
+            for item in results
+        ],
     }
     args.report.expanduser().resolve().parent.mkdir(parents=True, exist_ok=True)
     args.report.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
