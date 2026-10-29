@@ -9,12 +9,15 @@ from api import Handler, DB_PATH
 from storage import HeritageStorage
 from http.server import ThreadingHTTPServer
 from local_transcription import local_post
+from local_archive import local_archive_post
 from local_narration import narration_get
 
 UI_FILE = Path(__file__).resolve().parents[2] / "frontend" / "heritage" / "index.html"
 
 class WebHandler(Handler):
     def do_POST(self):
+        if self.path.split("?", 1)[0] == "/api/local/archives":
+            return local_archive_post(self)
         return local_post(self)
 
     def do_GET(self):
