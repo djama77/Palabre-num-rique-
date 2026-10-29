@@ -1,7 +1,7 @@
 // Palabre numérique : client Supabase public (jamais de clé service_role).
 const PALABRE_AUDIO_BUCKET="palabre-audio";
-const PALABRE_SUPABASE_URL="https://ymcptudijtrnpchwvkqe.supabase.co";
-const PALABRE_PUBLISHABLE_KEY="sb_publishable_Hkfpxv77XtO8eFTqH8qlFA_gi5p66ri";
+const PALABRE_SUPABASE_URL="https://sdxkawuufsapcscbhfzl.supabase.co";
+const PALABRE_PUBLISHABLE_KEY="sb_publishable__fZrN9zq3qE7dvR7vKejdA_GS401U_t";
 const palabreDb=window.supabase.createClient(PALABRE_SUPABASE_URL,PALABRE_PUBLISHABLE_KEY);
 
 const cloud=(id)=>document.getElementById(id);
@@ -73,7 +73,7 @@ async function palabreList(){
   heading.textContent=item.title_so;button.type="button";button.textContent="Écouter";
   button.disabled=!item.audio_path;
   button.onclick=async()=>{
-   const {data:link,error:err}=await palabreDb.storage.from(PALABRE_AUDIO_BUCKET).createSignedUrl(item.audio_path,60);
+   const {data:link,error:err}=await palabreDb.storage.from("palabre-audio").createSignedUrl(item.audio_path,60);
    if(err){cloud("cloud-status").textContent=err.message;return}
    article.querySelector("audio")?.remove();
    const player=document.createElement("audio");player.controls=true;player.preload="metadata";player.src=link.signedUrl;player.style.width="100%";player.addEventListener("error",()=>{cloud("cloud-status").textContent="Lecture impossible. Actualisez puis réessayez."});article.append(player);
