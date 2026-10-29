@@ -24,3 +24,21 @@ L'API serveur doit authentifier les utilisateurs et déterminer leurs rôles. Ne
 - Les champs texte peuvent contenir des informations personnelles : modération et revue avant diffusion.
 - Définir les migrations vers PostgreSQL si l'usage devient multi-utilisateur.
 - Aucune connexion réelle à Whisper, NLLB ou ElevenLabs n'est encore configurée.
+
+
+## Flux local SQLite (branche de travail)
+
+Le serveur local propose maintenant les routes suivantes :
+- `POST /api/local/archives` : enregistre l'audio original dans un dossier `audio/` à côté de la base SQLite et crée un récit en brouillon.
+- `GET /api/local/archives` : liste les archives locales avec leur état et leur transcription.
+- `GET /api/local/archives/audio/<id>` : permet d'écouter l'audio d'une archive locale.
+- Le formulaire de transcription de l'interface permet de saisir un titre, de corriger le texte, puis de sauvegarder explicitement l'audio et la transcription.
+
+Le chemin de la base reste configurable avec `PALABRE_DB_PATH`. Par défaut, la base est créée dans `backend/heritage/heritage.sqlite3`; les fichiers audio sont enregistrés dans `backend/heritage/audio/`. Le dossier audio doit être inclus dans les sauvegardes, mais pas dans les commits Git.
+
+Les archives nouvellement enregistrées restent en état `draft`. Cette fonctionnalité ne valide pas le contenu et ne publie rien automatiquement. La liste locale est destinée à l'instance locale ; ne pas exposer ce serveur directement à Internet.
+
+Tests ciblés :
+```bash
+python -m unittest discover -s backend/heritage -p "test_local_archive.py" -v
+```
