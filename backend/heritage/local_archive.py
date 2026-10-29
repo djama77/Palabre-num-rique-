@@ -144,6 +144,15 @@ def local_archive_post(handler):
 def local_archive_get(handler):
     """List locally saved drafts or stream an archive's original audio."""
     path = urlsplit(handler.path).path
+    if path == "/api/local/archives" or path.startswith("/api/local/archives/audio/"):
+        host = handler.headers.get("Host", "")
+        allowed_hosts = ("127.0.0.1:%s" % handler.server.server_port,
+                         "localhost:%s" % handler.server.server_port,
+                         "[::1]:%s" % handler.server.server_port)
+        origin = handler.headers.get("Origin", "")
+        if host not in allowed_hosts or (origin and origin != "http://" + host):
+            handler.send_error(403, "Origine locale non autorisée")
+            return True
     if path == "/api/local/archives":
         with handler.store._connect() as db:
             rows = db.execute(
