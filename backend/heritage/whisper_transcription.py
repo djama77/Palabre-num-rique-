@@ -1,13 +1,16 @@
-"""Offline Somali speech transcription using faster-whisper.
+"""Offline Somali speech transcription with local lexical hints and optional Ogaal-ASR.
 
-Install optional dependency: python -m pip install faster-whisper
-Models download on first use. No recording is sent to a remote API.
-This module never approves or publishes heritage records.
+No recording is sent to a remote API. Models must already be installed locally.
+Transcription never approves or publishes heritage records.
 """
+import os
 from pathlib import Path
 
-ALLOWED_EXTENSIONS = {".wav", ".mp3", ".m4a", ".flac", ".ogg", ".opus"}
+from somali_lexicon import enrich_result, vocabulary_prompt
+
+ALLOWED_EXTENSIONS = {".wav", ".mp3", ".m4a", ".flac", ".ogg", ".opus", ".webm"}
 MAX_AUDIO_BYTES = 100 * 1024 * 1024
+
 
 def validate_audio(path):
     audio = Path(path).expanduser().resolve(strict=True)
@@ -19,41 +22,92 @@ def validate_audio(path):
         raise ValueError("Taille audio non autorisée (maximum 100 Mo)")
     return audio
 
-def transcrire_somali(audio_path, *, model_name="small", device="cpu",
-                      compute_type="int8"):
-    """Return timestamped segments, detected language and Somali text.
 
-    Caller must establish informed consent, access authorization, and
-    verify the audio belongs to the requested heritage record.
+def _ogaal_model_dir():
+    configured = os.environ.get("PALABRE_OGAAL_MODEL_DIR", "").strip()
+    if configured:
+        return Path(configured).expanduser()
+    return Path(__file__).resolve().parents[2] / "models" / "ogaal-asr"
+
+
+def _transcribe_ogaal(audio):
+    """Run Ogaal-ASR from an already downloaded local model directory only."""
+    model_dir = _ogaal_model_dir()
+    if not model_dir.is_dir():
+        raise RuntimeError(
+            "Modèle Ogaal local introuvable. Définissez PALABRE_OGAAL_MODEL_DIR "
+            "ou utilisez PALABRE_ASR_ENGINE=whisper."
+        )
+    try:
+        from transformers import pipeline
+    except ImportError as exc:
+        raise RuntimeError(
+            "Ogaal-ASR requiert Transformers et PyTorch installés localement."
+        ) from exc
+    asr = pipeline(
+        "automatic-speech-recognition",
+        model=str(model_dir),
+        tokenizer=str(model_dir),
+        feature_extractor=str(model_dir),
+        device=-1,
+        model_kwargs={"local_files_only": True},
+    )
+    prediction = asr(str(audio))
+    text = str(prediction.get("text", "")).strip()
+    return {
+        "langue_demandee": "so",
+        "langue_detectee": "so",
+        "modele": "Ogaal-ASR-local",
+        "moteur": "ogaal",
+        "segments": [],
+        "texte": text,
+    }
+
+
+def transcrire_somali(audio_path, *, model_name="small", device="cpu",
+                      compute_type="int8", engine=None):
+    """Return Somali text, optional timestamps and lexicon-only annotations.
+
+    engine: auto (default), whisper, or ogaal. Auto selects Ogaal only when its
+    model directory is already available locally; it never downloads it.
     """
     audio = validate_audio(audio_path)
+    selected_engine = (engine or os.environ.get("PALABRE_ASR_ENGINE", "auto")).lower()
+    if selected_engine not in {"auto", "whisper", "ogaal"}:
+        raise ValueError("Moteur inconnu : utilisez auto, whisper ou ogaal")
+    oga_dir = _ogaal_model_dir()
+    if selected_engine == "ogaal" or (selected_engine == "auto" and oga_dir.is_dir()):
+        return enrich_result(_transcribe_ogaal(audio))
     try:
         from faster_whisper import WhisperModel
     except ImportError as exc:
         raise RuntimeError(
-            "Installer faster-whisper : python -m pip install faster-whisper"
+            "Installer faster-whisper : python -m pip install -r requirements-whisper.txt"
         ) from exc
     model = WhisperModel(model_name, device=device, compute_type=compute_type)
     segments, info = model.transcribe(
         str(audio), language="so", task="transcribe", beam_size=5,
-        vad_filter=True
+        vad_filter=True, initial_prompt=vocabulary_prompt()
     )
-    result = []
+    result_segments = []
     for segment in segments:
         text = segment.text.strip()
         if text:
-            result.append({
+            result_segments.append({
                 "debut": round(float(segment.start), 2),
                 "fin": round(float(segment.end), 2),
                 "texte": text
             })
-    return {
+    result = {
         "langue_demandee": "so",
         "langue_detectee": getattr(info, "language", None),
         "modele": model_name,
-        "segments": result,
-        "texte": " ".join(part["texte"] for part in result)
+        "moteur": "faster-whisper",
+        "segments": result_segments,
+        "texte": " ".join(part["texte"] for part in result_segments)
     }
+    return enrich_result(result)
+
 
 def transcrire_brouillon(record, *, actor, audio_root, model_name="small"):
     """Transcribe a consenting draft whose audio is within a protected directory.
