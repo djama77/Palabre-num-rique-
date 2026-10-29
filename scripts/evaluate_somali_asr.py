@@ -128,6 +128,7 @@ def main() -> int:
             print(f"{item['engine']}: ERREUR — {item['error']}")
         else:
             print(f"{item['engine']}: WER={item['wer']}% | CER={item['cer']}% | durée={item['seconds']} s")
+            print(f"Transcription {item['engine']}: {item['text']}")
     print(f"Rapport local : {args.report.resolve()}")
     if any("error" in item for item in results):
         return 1
