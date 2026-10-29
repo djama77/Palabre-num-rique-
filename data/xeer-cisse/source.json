@@ -1,0 +1,32 @@
+{
+  "id": "xeer-dhaqameed-pdf",
+  "title": "Xeer Dhaqameed — document de référence fourni",
+  "original_filename": "xeer_dhaqameed.pdf",
+  "language": "Somali (à confirmer par vérification du document)",
+  "themes": [
+    "patrimoine oral",
+    "droit coutumier",
+    "mémoire communautaire",
+    "culture somalie/afar à vérifier selon le contenu"
+  ],
+  "integration_target": "Palabre Numérique / Xeer-Yaqaan",
+  "status": {
+    "file_received": true,
+    "pdf_added_to_repository": false,
+    "ocr": "pending",
+    "human_review": "pending",
+    "copyright_and_redistribution_permission": "to_confirm"
+  },
+  "planned_uses": [
+    "OCR avec repères de pages PDF",
+    "référence documentaire pour la transcription somalie",
+    "recherche d'extraits avec citations de pages dans Xeer-Yaqaan",
+    "constitution d'un glossaire uniquement après vérification humaine"
+  ],
+  "rules": [
+    "Ne pas considérer l'OCR comme validé avant comparaison avec le PDF original.",
+    "Ne pas ajouter le PDF complet au dépôt public avant confirmation du droit de diffusion.",
+    "Ne pas inventer le titre exact, l'auteur, la date ou l'éditeur si ces éléments ne sont pas confirmés dans le document.",
+    "Ne jamais laisser le glossaire ou le modèle corriger automatiquement une transcription audio."
+  ]
+}
