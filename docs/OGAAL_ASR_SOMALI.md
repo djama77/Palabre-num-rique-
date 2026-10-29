@@ -15,11 +15,13 @@ Installer les dépendances optionnelles dans un environnement virtuel :
 
     python -m pip install -r backend/heritage/requirements-ogaal.txt
 
-Si une connexion Internet est autorisée pendant la préparation, télécharger une fois le modèle vers un dossier local avec le client Hugging Face installé :
+Si une connexion Internet est autorisée pendant la préparation, installer le client Hugging Face et télécharger une fois les deux modèles dans des dossiers locaux :
 
+    python -m pip install -U huggingface_hub
     hf download Ogaal-Labs/Ogaal-ASR --local-dir C:\Models\Ogaal-ASR
+    hf download Systran/faster-whisper-small --local-dir C:\Models\faster-whisper-small
 
-Transférer ensuite ce dossier sur le PC hors ligne. Au démarrage, l'application n'effectue pas de téléchargement.
+Le modèle faster-whisper doit être au format CTranslate2 ; le dépôt Systran/faster-whisper-small fournit ce format. Transférer ensuite les dossiers sur le PC hors ligne. Au démarrage, l'application n'effectue pas de téléchargement.
 
 Définir le chemin vers le modèle local dans PowerShell :
 
