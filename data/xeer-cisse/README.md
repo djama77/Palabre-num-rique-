@@ -3,6 +3,10 @@
 Ce dossier prépare l'usage du PDF Xeer-Ciise comme source documentaire pour
 la transcription somalie et le prototype local Xeer-Yaqaan.
 
+## Document enregistré
+
+Les métadonnées du PDF fourni sont consignées dans `data/xeer-cisse/source.json`. Le fichier original `xeer_dhaqameed.pdf` n'est pas copié dans le dépôt public à ce stade : sa taille est importante et les droits de redistribution doivent être confirmés. Le document est bien enregistré comme source prévue pour le projet, mais son OCR et son contenu restent à vérifier.
+
 ## État initial
 
 - Le PDF original est conservé séparément et n'est pas ajouté au dépôt.
