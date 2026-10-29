@@ -1,0 +1,7 @@
+{
+  "title": "Glossaire Xeer-Ciise pour l'aide à la transcription",
+  "source_file": "xeer_dhaqameed.pdf",
+  "status": "empty_until_source_review",
+  "instructions": "N'ajouter un terme que s'il a été vérifié dans le PDF original. verification_status doit être 'verified' pour que le terme puisse servir de contexte Whisper. Le prompt aide la reconnaissance et ne remplace jamais l'écoute humaine.",
+  "terms": []
+}
