@@ -9,12 +9,16 @@ from api import Handler, DB_PATH
 from storage import HeritageStorage
 from http.server import ThreadingHTTPServer
 from local_transcription import local_post
+from local_xeer import local_xeer_post
+from urllib.parse import urlsplit
 from local_narration import narration_get
 
 UI_FILE = Path(__file__).resolve().parents[2] / "frontend" / "heritage" / "index.html"
 
 class WebHandler(Handler):
     def do_POST(self):
+        if urlsplit(self.path).path == "/api/local/xeer-search":
+            return local_xeer_post(self)
         return local_post(self)
 
     def do_GET(self):
