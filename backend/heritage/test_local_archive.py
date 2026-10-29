@@ -1,4 +1,3 @@
-import os
 import tempfile
 import unittest
 from pathlib import Path
@@ -31,15 +30,15 @@ class LocalArchiveTests(unittest.TestCase):
         self.assertEqual(audio_path.read_bytes(), b"fake-audio-bytes")
         self.assertTrue(result["transcript_saved"])
 
-
     def test_multipart_parser_reads_metadata_and_audio(self):
         boundary = "----palabre-test-boundary"
+        crlf = "\r\n"
         body = (
-            f"--{boundary}\\r\\nContent-Disposition: form-data; name=\\"title\\"\\r\\n\\r\\nSheeko\\r\\n"
-            f"--{boundary}\\r\\nContent-Disposition: form-data; name=\\"transcript\\"\\r\\n\\r\\nQoraal\\r\\n"
-            f"--{boundary}\\r\\nContent-Disposition: form-data; name=\\"audio\\"; filename=\\"voix.webm\\"\\r\\n"
-            "Content-Type: audio/webm\\r\\n\\r\\nAUDIO_BYTES\\r\\n"
-            f"--{boundary}--\\r\\n"
+            f'--{boundary}{crlf}Content-Disposition: form-data; name="title"{crlf}{crlf}Sheeko{crlf}'
+            f'--{boundary}{crlf}Content-Disposition: form-data; name="transcript"{crlf}{crlf}Qoraal{crlf}'
+            f'--{boundary}{crlf}Content-Disposition: form-data; name="audio"; filename="voix.webm"{crlf}'
+            f'Content-Type: audio/webm{crlf}{crlf}AUDIO_BYTES{crlf}'
+            f'--{boundary}--{crlf}'
         ).encode()
         fields = _multipart_fields("multipart/form-data; boundary=" + boundary, body)
         self.assertEqual(fields["title"]["value"], "Sheeko")
