@@ -4,7 +4,7 @@ import unittest
 from pathlib import Path
 
 from storage import HeritageStorage
-from local_archive import create_local_archive
+from local_archive import _multipart_fields, create_local_archive
 from workflow import Status
 
 
@@ -29,7 +29,23 @@ class LocalArchiveTests(unittest.TestCase):
         self.assertTrue(record.consent_recorded)
         audio_path = self.root / record.original_audio_path
         self.assertEqual(audio_path.read_bytes(), b"fake-audio-bytes")
-        self.assertFalse(result["transcript_saved"] is False)
+        self.assertTrue(result["transcript_saved"])
+
+
+    def test_multipart_parser_reads_metadata_and_audio(self):
+        boundary = "----palabre-test-boundary"
+        body = (
+            f"--{boundary}\\r\\nContent-Disposition: form-data; name=\\"title\\"\\r\\n\\r\\nSheeko\\r\\n"
+            f"--{boundary}\\r\\nContent-Disposition: form-data; name=\\"transcript\\"\\r\\n\\r\\nQoraal\\r\\n"
+            f"--{boundary}\\r\\nContent-Disposition: form-data; name=\\"audio\\"; filename=\\"voix.webm\\"\\r\\n"
+            "Content-Type: audio/webm\\r\\n\\r\\nAUDIO_BYTES\\r\\n"
+            f"--{boundary}--\\r\\n"
+        ).encode()
+        fields = _multipart_fields("multipart/form-data; boundary=" + boundary, body)
+        self.assertEqual(fields["title"]["value"], "Sheeko")
+        self.assertEqual(fields["transcript"]["value"], "Qoraal")
+        self.assertEqual(fields["audio"]["filename"], "voix.webm")
+        self.assertEqual(fields["audio"]["value"], b"AUDIO_BYTES")
 
     def test_rejects_missing_consent(self):
         with self.assertRaises(PermissionError):
