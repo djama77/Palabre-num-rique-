@@ -193,3 +193,23 @@ palabreEnsureAnonymousSession().catch((error) => {
   cloud("cloud-user").textContent = "Espace privé non initialisé";
   cloudStatus("Activez les connexions anonymes dans Supabase Auth, puis rechargez la page. Détail : " + error.message);
 });
+
+
+// Transcription distante : le navigateur transmet le jeton de session courant,
+// jamais une clé secrète. Le service Python vérifie ce jeton auprès de Supabase Auth.
+window.palabreTranscribeRemote = async function(file) {
+  const endpoint = String(window.PALABRE_WHISPER_URL || "").trim();
+  if (!endpoint) throw new Error("Le service de transcription distant n'est pas encore configuré. Définissez PALABRE_WHISPER_URL après le déploiement du serveur Python.");
+  const {data, error} = await palabreDb.auth.getSession();
+  if (error) throw error;
+  const token = data.session && data.session.access_token;
+  if (!token) throw new Error("Session Supabase absente. Rechargez la page et réessayez.");
+  const body = new FormData();
+  body.append("file", file, file.name);
+  const response = await fetch(endpoint.replace(/\\/$/, "") + "/api/transcribe", {
+    method: "POST", headers: {"Authorization": "Bearer " + token}, body
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(result.detail || "Le service de transcription est indisponible.");
+  return result;
+};
