@@ -142,6 +142,7 @@ cloud("transcription-result").addEventListener("input", () => {
   cloud("save-transcription").disabled = !cloud("transcription-result").value.trim();
 });
 cloud("transcribe").addEventListener("click", () => { cloud("save-transcription").disabled = true; });
+window.addEventListener("palabre:transcription-ready", () => { cloud("save-transcription").disabled = false; palabreSaveTranscription(); });
 palabreDb.auth.onAuthStateChange((_event, session) => {
   if (session && session.user) {
     palabreUser = session.user;
