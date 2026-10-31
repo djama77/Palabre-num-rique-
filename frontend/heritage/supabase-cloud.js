@@ -7,16 +7,17 @@ const palabreDb = window.supabase.createClient(PALABRE_SUPABASE_URL, PALABRE_PUB
 const cloud = (id) => document.getElementById(id);
 let palabreUser = null;
 let archiveBusy = false;
+let lastSavedRecordId = null;
 
 function cloudStatus(message) { cloud("cloud-status").textContent = message; }
 function archiveStatus(message) { cloud("archive-save-status").textContent = message; }
 
 function safeFileExtension(file) {
   const mime = (file.type || "").split(";")[0].toLowerCase();
-  const known = {"audio/webm":"webm","audio/mp4":"m4a","audio/mpeg":"mp3","audio/wav":"wav","audio/x-wav":"wav","audio/ogg":"ogg","audio/flac":"flac","audio/aac":"aac"};
+  const known = {"audio/webm":"webm","audio/mp4":"m4a","audio/mpeg":"mp3","audio/wav":"wav","audio/x-wav":"wav","audio/ogg":"ogg","audio/flac":"flac"};
   if (known[mime]) return known[mime];
   const ext = (file.name || "").split(".").pop().toLowerCase();
-  return ["webm","m4a","mp3","wav","ogg","flac","aac","opus"].includes(ext) ? ext : null;
+  return ["webm","m4a","mp3","wav","ogg","flac","opus"].includes(ext) ? ext : null;
 }
 
 async function palabreEnsureAnonymousSession() {
@@ -52,26 +53,42 @@ async function palabreSaveTranscription() {
   const saveButton = cloud("save-transcription");
   saveButton.disabled = true;
   archiveStatus("Sauvegarde de la transcription et de son audio dans Supabase…");
-  const id = crypto.randomUUID();
-  const path = palabreUser.id + "/" + id + "." + ext;
-  const mime = (file.type || "application/octet-stream").split(";")[0];
   try {
-    const {error: uploadError} = await palabreDb.storage.from(PALABRE_AUDIO_BUCKET).upload(path, file, {contentType:mime, upsert:false});
-    if (uploadError) throw uploadError;
-    const {error: insertError} = await palabreDb.from("palabre_records").insert({
-      owner_id:palabreUser.id,
-      title_so:title.slice(0,300),
-      transcript_so:transcript,
-      audio_path:path,
-      consent_recorded:true,
-      publication_authorized:false,
-      status:"draft"
-    });
-    if (insertError) {
-      await palabreDb.storage.from(PALABRE_AUDIO_BUCKET).remove([path]);
-      throw insertError;
+    if (lastSavedRecordId) {
+      const {data:updated, error:updateError} = await palabreDb.from("palabre_records")
+        .update({title_so:title.slice(0,300), transcript_so:transcript})
+        .eq("id", lastSavedRecordId)
+        .eq("owner_id", palabreUser.id)
+        .select("id")
+        .single();
+      if (updateError) throw updateError;
+      if (!updated) throw new Error("Archive introuvable pour cette session.");
+      archiveStatus("Corrections enregistrées dans l'archive existante.");
+    } else {
+      const id = crypto.randomUUID();
+      const path = palabreUser.id + "/" + id + "." + ext;
+      const mime = (file.type || "application/octet-stream").split(";")[0];
+      const {error:uploadError} = await palabreDb.storage.from(PALABRE_AUDIO_BUCKET)
+        .upload(path, file, {contentType:mime, upsert:false});
+      if (uploadError) throw uploadError;
+      const {data:inserted, error:insertError} = await palabreDb.from("palabre_records")
+        .insert({
+          owner_id:palabreUser.id,
+          title_so:title.slice(0,300),
+          transcript_so:transcript,
+          audio_path:path,
+          consent_recorded:true
+        })
+        .select("id")
+        .single();
+      if (insertError) {
+        await palabreDb.storage.from(PALABRE_AUDIO_BUCKET).remove([path]);
+        throw insertError;
+      }
+      lastSavedRecordId = inserted.id;
+      archiveStatus("Transcription sauvegardée automatiquement dans vos archives privées.");
     }
-    archiveStatus("Transcription sauvegardée avec succès dans vos archives privées.");
+    saveButton.textContent = "Enregistrer les corrections";
     saveButton.disabled = true;
     await palabreList();
   } catch (error) {
@@ -157,7 +174,12 @@ palabrePublicLibrary();
 cloud("archive-refresh").addEventListener("click", palabreList);
 cloud("save-transcription").addEventListener("click", palabreSaveTranscription);
 cloud("transcription-result").addEventListener("input", () => {
-  cloud("save-transcription").disabled = !cloud("transcription-result").value.trim();
+  const button = cloud("save-transcription");
+  button.textContent = lastSavedRecordId ? "Enregistrer les corrections" : "Enregistrer cette transcription";
+  button.disabled = !cloud("transcription-result").value.trim();
+});
+cloud("transcription-title").addEventListener("input", () => {
+  if (lastSavedRecordId) cloud("save-transcription").disabled = false;
 });
 cloud("transcribe").addEventListener("click", () => { cloud("save-transcription").disabled = true; });
 window.addEventListener("palabre:transcription-ready", () => { cloud("save-transcription").disabled = false; palabreSaveTranscription(); });
