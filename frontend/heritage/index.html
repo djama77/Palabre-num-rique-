@@ -70,6 +70,7 @@ transcribe.addEventListener("click",async()=>{
   const result=await response.json();
   if(!response.ok)throw new Error(result.error||"Échec de la transcription");
   transcriptionResult.value=result.texte||"";
+  if(result.texte){const titleField=document.getElementById("transcription-title");if(titleField&&!titleField.value)titleField.value=file.name.replace(/\.[^.]+$/,"");window.dispatchEvent(new Event("palabre:transcription-ready"));}
   transcriptionStatus.textContent=result.texte?"Transcription terminée. Vérifiez et corrigez le texte.":"Aucune parole détectée.";
  }catch(e){transcriptionStatus.textContent=e.message||"Service indisponible. Démarrez le serveur local."}
  finally{transcribe.disabled=false}
