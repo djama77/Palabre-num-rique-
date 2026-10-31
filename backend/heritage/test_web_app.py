@@ -19,6 +19,19 @@ class WebAppTests(unittest.TestCase):
         for marker in ('palabrePublicLibrary', '.eq("status","published")', '.eq("publication_authorized",true)'):
             self.assertIn(marker, cloud_script)
 
+    def test_private_transcription_archives_without_manual_login(self):
+        html = UI_FILE.read_text(encoding="utf-8")
+        cloud_script = (UI_FILE.parent / "supabase-cloud.js").read_text(encoding="utf-8")
+        self.assertIn('id="archive-refresh"', html)
+        self.assertIn('id="save-transcription"', html)
+        self.assertIn('id="transcription-result"', html)
+        self.assertNotIn('id="cloud-email"', html)
+        self.assertNotIn('id="cloud-password"', html)
+        self.assertIn("signInAnonymously()", cloud_script)
+        self.assertIn('transcript_so:transcript', cloud_script)
+        self.assertIn("lastSavedRecordId", cloud_script)
+        self.assertIn("publication_authorized", cloud_script.split("async function palabrePublicLibrary")[1])
+
     def test_local_http_and_api(self):
         with tempfile.TemporaryDirectory() as tmp:
             class TestHandler(WebHandler):

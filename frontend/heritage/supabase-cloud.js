@@ -1,97 +1,215 @@
-// Palabre numérique : client Supabase public (jamais de clé service_role).
-const PALABRE_AUDIO_BUCKET="palabre-audio";
-const PALABRE_SUPABASE_URL="https://ymcptudijtrnpchwvkqe.supabase.co";
-const PALABRE_PUBLISHABLE_KEY="sb_publishable_Hkfpxv77XtO8eFTqH8qlFA_gi5p66ri";
-const palabreDb=window.supabase.createClient(PALABRE_SUPABASE_URL,PALABRE_PUBLISHABLE_KEY);
+// Palabre numérique — archivage automatique privé Supabase.
+"use strict";
+const PALABRE_AUDIO_BUCKET = "palabre-audio";
+const PALABRE_SUPABASE_URL = "https://sdxkawuufsapcscbhfzl.supabase.co";
+const PALABRE_PUBLISHABLE_KEY = "sb_publishable__fZrN9zq3qE7dvR7vKejdA_GS401U_t";
+const palabreDb = window.supabase.createClient(PALABRE_SUPABASE_URL, PALABRE_PUBLISHABLE_KEY);
+const cloud = (id) => document.getElementById(id);
+let palabreUser = null;
+let archiveBusy = false;
+let lastSavedRecordId = null;
 
-const cloud=(id)=>document.getElementById(id);
-let palabreUser=null;
+function cloudStatus(message) { cloud("cloud-status").textContent = message; }
+function archiveStatus(message) { cloud("archive-save-status").textContent = message; }
 
-function palabreAuthMessage(error){
- const message=String(error?.message||"");
- if(/invalid login credentials/i.test(message))return "Identifiants incorrects ou compte inexistant.";
- if(/email not confirmed/i.test(message))return "Confirmez votre adresse e-mail avant de vous connecter.";
- if(/already registered|user already exists/i.test(message))return "Cette adresse e-mail possède déjà un compte. Essayez de vous connecter.";
- if(/password.*(weak|short|at least)/i.test(message))return "Choisissez un mot de passe plus robuste.";
- if(/rate limit|too many requests/i.test(message))return "Trop de tentatives. Attendez quelques minutes avant de réessayer.";
- return "Authentification impossible. Vérifiez les informations saisies et la configuration Supabase.";
+function safeFileExtension(file) {
+  const mime = (file.type || "").split(";")[0].toLowerCase();
+  const known = {"audio/webm":"webm","audio/mp4":"m4a","audio/mpeg":"mp3","audio/wav":"wav","audio/x-wav":"wav","audio/ogg":"ogg","audio/flac":"flac"};
+  if (known[mime]) return known[mime];
+  const ext = (file.name || "").split(".").pop().toLowerCase();
+  return ["webm","m4a","mp3","wav","ogg","flac","opus"].includes(ext) ? ext : null;
 }
-async function palabreRefreshAuth(){
- const {data}=await palabreDb.auth.getUser();
- palabreUser=data.user;
- cloud("cloud-user").textContent=palabreUser?"Connecté : "+palabreUser.email:"Non connecté";
- cloud("cloud-save").disabled=!palabreUser;
- cloud("cloud-refresh").disabled=!palabreUser;
- cloud("cloud-logout").hidden=!palabreUser;
- if(!palabreUser)cloud("cloud-list").replaceChildren();
-}
-async function palabreLogin(create){
- const email=cloud("cloud-email").value.trim();
- const password=cloud("cloud-password").value;
- if(!email||!password){cloud("cloud-status").textContent="Indiquez votre e-mail et votre mot de passe.";return}
- const {data,error}=create?await palabreDb.auth.signUp({email,password}):await palabreDb.auth.signInWithPassword({email,password});
- cloud("cloud-password").value="";
- cloud("cloud-status").textContent=error?palabreAuthMessage(error):create&&!data.session?"Vérifiez votre boîte e-mail pour confirmer votre compte.":"Connexion réussie. Vous pouvez maintenant sauvegarder votre enregistrement.";
- if(!error){await palabreRefreshAuth();if(palabreUser)await palabreList();}
-}
-cloud("cloud-login").onclick=()=>palabreLogin(false);
-cloud("cloud-register").onclick=()=>palabreLogin(true);
-cloud("cloud-logout").onclick=async()=>{await palabreDb.auth.signOut();await palabreRefreshAuth()};
-palabreDb.auth.onAuthStateChange(()=>setTimeout(palabreRefreshAuth,0));
-palabreRefreshAuth();
 
-cloud("cloud-save").onclick=async()=>{
- if(!palabreUser||!cloud("cloud-consent").checked){cloud("cloud-status").textContent="Connexion et consentement nécessaires.";return}
- const title=cloud("cloud-title").value.trim();
- const audio=(typeof recordBlob!=="undefined"&&recordBlob)||cloud("cloud-file").files[0];
- if(!title||title.length>300||!audio){cloud("cloud-status").textContent="Ajoutez un titre et un enregistrement.";return}
- if(audio.size>100*1024*1024){cloud("cloud-status").textContent="100 Mo maximum.";return}
- const mime=(audio.type||"").split(";")[0];
- const formats={"audio/webm":"webm","audio/mp4":"m4a","audio/mpeg":"mp3","audio/wav":"wav","audio/x-wav":"wav","audio/ogg":"ogg","audio/flac":"flac"};
- if(!formats[mime]){cloud("cloud-status").textContent="Format audio non pris en charge.";return}
- const uuid=globalThis.crypto?.randomUUID?crypto.randomUUID():Date.now()+"-"+Math.random().toString(16).slice(2);
- const path=palabreUser.id+"/"+uuid+"."+formats[mime];
- cloud("cloud-save").disabled=true;cloud("cloud-status").textContent="Sauvegarde privée en cours…";
- try{
-  const {error:upload}=await palabreDb.storage.from(PALABRE_AUDIO_BUCKET).upload(path,audio,{contentType:mime,upsert:false});
-  if(upload)throw upload;
-  const {error:insert}=await palabreDb.from("palabre_records").insert({owner_id:palabreUser.id,title_so:title,audio_path:path,consent_recorded:true});
-  if(insert){await palabreDb.storage.from(PALABRE_AUDIO_BUCKET).remove([path]);throw insert}
-  cloud("cloud-status").textContent="Discussion sauvegardée dans votre espace privé.";
+async function palabreEnsureAnonymousSession() {
+  cloudStatus("Création automatique de votre espace privé…");
+  const {data: sessionData, error: sessionError} = await palabreDb.auth.getSession();
+  if (sessionError) throw sessionError;
+  let session = sessionData.session;
+  if (!session) {
+    const {data, error} = await palabreDb.auth.signInAnonymously();
+    if (error) throw error;
+    session = data.session;
+  }
+  if (!session || !session.user) throw new Error("La session privée n'a pas pu être créée.");
+  palabreUser = session.user;
+  cloud("cloud-user").textContent = "Espace privé prêt · connexion automatique";
+  cloudStatus("Votre espace privé est prêt. Les transcriptions seront archivées automatiquement.");
   await palabreList();
- }catch(error){cloud("cloud-status").textContent="Sauvegarde impossible : "+error.message}
- finally{cloud("cloud-save").disabled=!palabreUser}
-};
-
-async function palabreList(){
- if(!palabreUser)return;
- const {data,error}=await palabreDb.from("palabre_records").select("id,title_so,audio_path,created_at").eq("owner_id",palabreUser.id).order("created_at",{ascending:false}).limit(100);
- const list=cloud("cloud-list");list.replaceChildren();
- if(error){cloud("cloud-status").textContent="Liste indisponible : "+error.message;return}
- for(const item of data){
-  const article=document.createElement("article"),heading=document.createElement("h3"),button=document.createElement("button");
-  heading.textContent=item.title_so;button.type="button";button.textContent="Écouter";
-  button.disabled=!item.audio_path;
-  button.onclick=async()=>{
-   const {data:link,error:err}=await palabreDb.storage.from(PALABRE_AUDIO_BUCKET).createSignedUrl(item.audio_path,60);
-   if(err){cloud("cloud-status").textContent=err.message;return}
-   article.querySelector("audio")?.remove();
-   const player=document.createElement("audio");player.controls=true;player.preload="metadata";player.src=link.signedUrl;player.style.width="100%";player.addEventListener("error",()=>{cloud("cloud-status").textContent="Lecture impossible. Actualisez puis réessayez."});article.append(player);
-   try{await player.play()}catch(e){cloud("cloud-status").textContent="Appuyez sur ▶ pour lancer la lecture."}
-  };
-  article.append(heading,button);list.append(article);
- }
- cloud("cloud-status").textContent=data.length+" enregistrement(s) privé(s).";
 }
-cloud("cloud-refresh").onclick=palabreList;
 
-async function palabrePublicLibrary(){
- const status=document.getElementById("status");
- status.textContent="Chargement de la bibliothèque…";
- const {data,error}=await palabreDb.from("palabre_records").select("id,title_so,translation_fr,status").eq("status","published").eq("consent_recorded",true).eq("publication_authorized",true).order("created_at",{ascending:false}).limit(100);
- if(error){status.textContent="Bibliothèque indisponible : "+error.message;return}
- records=(data||[]).map(item=>({id:item.id,title_so:item.title_so,translation_fr:item.translation_fr}));
- status.textContent=records.length+" récit(s) publié(s).";render();
+async function palabreSaveTranscription() {
+  if (archiveBusy) return;
+  if (!palabreUser) { archiveStatus("Espace privé indisponible. Rechargez la page puis réessayez."); return; }
+  const transcript = cloud("transcription-result").value.trim();
+  const file = cloud("audio-file").files && cloud("audio-file").files[0];
+  const title = cloud("transcription-title").value.trim() || ("Transcription du " + new Date().toLocaleString("fr-FR"));
+  if (!transcript) { archiveStatus("Aucun texte à enregistrer."); return; }
+  if (!file) { archiveStatus("Le fichier audio source est introuvable. Réimportez-le pour archiver la transcription."); return; }
+  if (!cloud("audio-consent").checked) { archiveStatus("Le consentement est nécessaire pour archiver ce témoignage."); return; }
+  const ext = safeFileExtension(file);
+  if (!ext) { archiveStatus("Format audio non pris en charge pour l'archivage."); return; }
+  if (file.size > 100 * 1024 * 1024) { archiveStatus("Fichier audio trop volumineux (100 Mo maximum)."); return; }
+  archiveBusy = true;
+  const saveButton = cloud("save-transcription");
+  saveButton.disabled = true;
+  archiveStatus("Sauvegarde de la transcription et de son audio dans Supabase…");
+  try {
+    if (lastSavedRecordId) {
+      const {data:updated, error:updateError} = await palabreDb.from("palabre_records")
+        .update({title_so:title.slice(0,300), transcript_so:transcript})
+        .eq("id", lastSavedRecordId)
+        .eq("owner_id", palabreUser.id)
+        .select("id")
+        .single();
+      if (updateError) throw updateError;
+      if (!updated) throw new Error("Archive introuvable pour cette session.");
+      archiveStatus("Corrections enregistrées dans l'archive existante.");
+    } else {
+      const id = crypto.randomUUID();
+      const path = palabreUser.id + "/" + id + "." + ext;
+      const mime = (file.type || "application/octet-stream").split(";")[0];
+      const {error:uploadError} = await palabreDb.storage.from(PALABRE_AUDIO_BUCKET)
+        .upload(path, file, {contentType:mime, upsert:false});
+      if (uploadError) throw uploadError;
+      const {data:inserted, error:insertError} = await palabreDb.from("palabre_records")
+        .insert({
+          owner_id:palabreUser.id,
+          title_so:title.slice(0,300),
+          transcript_so:transcript,
+          audio_path:path,
+          consent_recorded:true
+        })
+        .select("id")
+        .single();
+      if (insertError) {
+        await palabreDb.storage.from(PALABRE_AUDIO_BUCKET).remove([path]);
+        throw insertError;
+      }
+      lastSavedRecordId = inserted.id;
+      archiveStatus("Transcription sauvegardée automatiquement dans vos archives privées.");
+    }
+    saveButton.textContent = "Enregistrer les corrections";
+    saveButton.disabled = true;
+    await palabreList();
+  } catch (error) {
+    archiveStatus("Sauvegarde impossible : " + (error.message || "erreur Supabase") + ". Votre texte reste affiché ; vous pouvez réessayer.");
+    saveButton.disabled = false;
+  } finally {
+    archiveBusy = false;
+  }
 }
-document.getElementById("refresh").addEventListener("click",palabrePublicLibrary);
+
+async function palabreList() {
+  if (!palabreUser) return;
+  const list = cloud("cloud-list");
+  list.replaceChildren();
+  const {data, error} = await palabreDb.from("palabre_records")
+    .select("id,title_so,transcript_so,audio_path,created_at")
+    .eq("owner_id", palabreUser.id)
+    .order("created_at", {ascending:false})
+    .limit(100);
+  if (error) { cloudStatus("Impossible de charger les archives : " + error.message); return; }
+  if (!data || !data.length) {
+    const empty = document.createElement("p");
+    empty.className = "empty muted";
+    empty.textContent = "Aucune transcription archivée pour le moment. Après une transcription, elle sera enregistrée ici.";
+    list.append(empty);
+    cloudStatus("Votre espace privé est prêt · 0 archive.");
+    return;
+  }
+  for (const item of data) {
+    const article = document.createElement("article");
+    const heading = document.createElement("h3");
+    const date = document.createElement("p");
+    const transcript = document.createElement("p");
+    const listen = document.createElement("button");
+    heading.textContent = item.title_so || "Transcription sans titre";
+    date.className = "muted";
+    date.textContent = item.created_at ? new Date(item.created_at).toLocaleString("fr-FR") : "";
+    transcript.textContent = item.transcript_so || "Texte non disponible.";
+    transcript.style.whiteSpace = "pre-wrap";
+    listen.type = "button";
+    listen.textContent = "Écouter l'audio original";
+    listen.disabled = !item.audio_path;
+    listen.addEventListener("click", async () => {
+      listen.disabled = true;
+      try {
+        const {data:link, error:linkError} = await palabreDb.storage.from(PALABRE_AUDIO_BUCKET).createSignedUrl(item.audio_path, 60);
+        if (linkError) throw linkError;
+        const player = document.createElement("audio");
+        player.controls = true;
+        player.preload = "metadata";
+        player.src = link.signedUrl;
+        player.style.width = "100%";
+        article.querySelector("audio")?.remove();
+        article.append(player);
+        await player.play().catch(() => {});
+      } catch (error) { cloudStatus("Lecture impossible : " + error.message); }
+      finally { listen.disabled = false; }
+    });
+    article.append(heading, date, transcript, listen);
+    list.append(article);
+  }
+  cloudStatus(data.length + " transcription(s) privée(s) dans vos archives.");
+}
+
+async function palabrePublicLibrary() {
+  const status = document.getElementById("status");
+  status.textContent = "Chargement de la bibliothèque…";
+  const {data, error} = await palabreDb.from("palabre_records")
+    .select("id,title_so,translation_fr,status")
+    .eq("status","published")
+    .eq("consent_recorded",true)
+    .eq("publication_authorized",true)
+    .order("created_at", {ascending:false})
+    .limit(100);
+  if (error) { status.textContent = "Bibliothèque indisponible : " + error.message; return; }
+  records = (data || []).map(item => ({id:item.id,title_so:item.title_so,translation_fr:item.translation_fr}));
+  status.textContent = records.length + " récit(s) publié(s).";
+  render();
+}
+document.getElementById("refresh").addEventListener("click", palabrePublicLibrary);
 palabrePublicLibrary();
+
+cloud("archive-refresh").addEventListener("click", palabreList);
+cloud("save-transcription").addEventListener("click", palabreSaveTranscription);
+cloud("transcription-result").addEventListener("input", () => {
+  const button = cloud("save-transcription");
+  button.textContent = lastSavedRecordId ? "Enregistrer les corrections" : "Enregistrer cette transcription";
+  button.disabled = !cloud("transcription-result").value.trim();
+});
+cloud("transcription-title").addEventListener("input", () => {
+  if (lastSavedRecordId) cloud("save-transcription").disabled = false;
+});
+cloud("transcribe").addEventListener("click", () => { cloud("save-transcription").disabled = true; });
+window.addEventListener("palabre:transcription-ready", () => { cloud("save-transcription").disabled = false; palabreSaveTranscription(); });
+palabreDb.auth.onAuthStateChange((_event, session) => {
+  if (session && session.user) {
+    palabreUser = session.user;
+    cloud("cloud-user").textContent = "Espace privé prêt · connexion automatique";
+  }
+});
+palabreEnsureAnonymousSession().catch((error) => {
+  cloud("cloud-user").textContent = "Espace privé non initialisé";
+  cloudStatus("Activez les connexions anonymes dans Supabase Auth, puis rechargez la page. Détail : " + error.message);
+});
+
+
+// Transcription distante : le navigateur transmet le jeton de session courant,
+// jamais une clé secrète. Le service Python vérifie ce jeton auprès de Supabase Auth.
+window.palabreTranscribeRemote = async function(file) {
+  const endpoint = String(window.PALABRE_WHISPER_URL || "").trim();
+  if (!endpoint) throw new Error("Le service de transcription distant n'est pas encore configuré. Définissez PALABRE_WHISPER_URL après le déploiement du serveur Python.");
+  const {data, error} = await palabreDb.auth.getSession();
+  if (error) throw error;
+  const token = data.session && data.session.access_token;
+  if (!token) throw new Error("Session Supabase absente. Rechargez la page et réessayez.");
+  const body = new FormData();
+  body.append("file", file, file.name);
+  const response = await fetch(endpoint.replace(/\\/$/, "") + "/api/transcribe", {
+    method: "POST", headers: {"Authorization": "Bearer " + token}, body
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(result.detail || "Le service de transcription est indisponible.");
+  return result;
+};
