@@ -64,7 +64,7 @@ create policy "Owners can delete drafts"
 
 grant usage on schema public to anon, authenticated;
 grant select on public.palabre_records to anon, authenticated;
-grant insert (owner_id, title_so, audio_path, consent_recorded)
+grant insert (owner_id, title_so, transcript_so, audio_path, consent_recorded)
   on public.palabre_records to authenticated;
 grant update (title_so, title_fr, transcript_so, translation_fr)
   on public.palabre_records to authenticated;
