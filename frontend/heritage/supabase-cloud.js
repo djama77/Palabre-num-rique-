@@ -141,9 +141,9 @@ async function palabrePublicLibrary() {
   status.textContent = "Chargement de la bibliothèque…";
   const {data, error} = await palabreDb.from("palabre_records")
     .select("id,title_so,translation_fr,status")
-    .eq("status", "published")
-    .eq("consent_recorded", true)
-    .eq("publication_authorized", true)
+    .eq("status","published")
+    .eq("consent_recorded",true)
+    .eq("publication_authorized",true)
     .order("created_at", {ascending:false})
     .limit(100);
   if (error) { status.textContent = "Bibliothèque indisponible : " + error.message; return; }
