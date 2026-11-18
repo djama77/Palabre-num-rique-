@@ -54,13 +54,15 @@ function render(){
 
 const audioFile=document.getElementById("audio-file");
 const consent=document.getElementById("audio-consent");
+const sourceConsent=document.getElementById("source-consent");
 const transcribe=document.getElementById("transcribe");
 const transcriptionStatus=document.getElementById("transcription-status");
 const transcriptionResult=document.getElementById("transcription-result");
 transcribe.addEventListener("click",async()=>{
  const file=audioFile.files[0];
  if(!file){transcriptionStatus.textContent="Choisissez d'abord un enregistrement.";return}
- if(!consent.checked){transcriptionStatus.textContent="Confirmez le consentement avant de continuer.";return}
+ if(!sourceConsent.checked){transcriptionStatus.textContent="Confirmez d’abord le consentement des personnes enregistrées.";return}
+ if(!consent.checked){transcriptionStatus.textContent="Autorisez l’envoi de l’audio au service de transcription avant de continuer.";return}
  const extension="."+file.name.split(".").pop().toLowerCase();
  if(![".wav",".mp3",".m4a",".flac",".ogg",".opus",".webm"].includes(extension)){transcriptionStatus.textContent="Format non pris en charge.";return}
  if(file.size>100*1024*1024){transcriptionStatus.textContent="Fichier trop volumineux (100 Mo maximum).";return}
@@ -126,8 +128,8 @@ recordUse.addEventListener("click",()=>{
  const ext=recordMime.includes("mp4")?"m4a":recordMime.includes("ogg")?"ogg":"webm";
  const file=new File([recordBlob],"discussion-somali."+ext,{type:recordBlob.type});
  try{
-  const dt=new DataTransfer();dt.items.add(file);audioFile.files=dt.files;consent.checked=recordConsent.checked;
-  recordStatus.textContent="Enregistrement transféré au formulaire de transcription.";
+  const dt=new DataTransfer();dt.items.add(file);audioFile.files=dt.files;sourceConsent.checked=recordConsent.checked;
+  recordStatus.textContent="Enregistrement transféré. Vérifiez le consentement de collecte et autorisez séparément l’envoi au moteur IA.";
  }catch(e){recordStatus.textContent="Transfert automatique indisponible sur ce navigateur : téléchargez le fichier, puis importez-le dans le formulaire.";return}
  document.getElementById("audio-file").scrollIntoView({behavior:"smooth",block:"center"});
 });
