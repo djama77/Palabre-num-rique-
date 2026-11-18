@@ -218,7 +218,7 @@ window.palabreTranscribeRemote = async function(file) {
   if (!token) throw new Error("Session Supabase absente. Rechargez la page et réessayez.");
   const body = new FormData();
   body.append("file", file, file.name);
-  const response = await fetch(endpoint.replace(/\\/$/, "") + "/api/transcribe", {
+  const response = await fetch(endpoint.replace(/\/$/, "") + "/api/transcribe", {
     method: "POST", headers: {"Authorization": "Bearer " + token}, body
   });
   const result = await response.json().catch(() => ({}));
