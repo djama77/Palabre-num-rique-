@@ -45,6 +45,7 @@ async function palabreSaveTranscription() {
   const title = cloud("transcription-title").value.trim() || ("Transcription du " + new Date().toLocaleString("fr-FR"));
   if (!transcript) { archiveStatus("Aucun texte à enregistrer."); return; }
   if (!file) { archiveStatus("Le fichier audio source est introuvable. Réimportez-le pour archiver la transcription."); return; }
+  if (!cloud("source-consent").checked) { archiveStatus("Le consentement des personnes enregistrées est requis pour conserver ce témoignage."); return; }
   if (!cloud("archive-consent").checked) { archiveStatus("Autorisez séparément l’archivage privé avant de sauvegarder ce témoignage."); return; }
   const ext = safeFileExtension(file);
   if (!ext) { archiveStatus("Format audio non pris en charge pour l'archivage."); return; }
@@ -189,6 +190,7 @@ cloud("archive-consent").addEventListener("change", () => {
 });
 cloud("audio-file").addEventListener("change", () => {
   lastSavedRecordId = null;
+  cloud("source-consent").checked = false;
   cloud("save-transcription").textContent = "Enregistrer cette transcription";
 });
 cloud("transcribe").addEventListener("click", () => { cloud("save-transcription").disabled = true; });
