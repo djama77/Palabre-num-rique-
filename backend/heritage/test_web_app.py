@@ -32,6 +32,20 @@ class WebAppTests(unittest.TestCase):
         self.assertIn("lastSavedRecordId", cloud_script)
         self.assertIn("publication_authorized", cloud_script.split("async function palabrePublicLibrary")[1])
 
+    def test_consent_is_separated_by_purpose(self):
+        html = UI_FILE.read_text(encoding="utf-8")
+        cloud_script = (UI_FILE.parent / "supabase-cloud.js").read_text(encoding="utf-8")
+        for consent_id in ("record-consent", "source-consent", "audio-consent", "archive-consent"):
+            self.assertIn('id="' + consent_id + '"', html)
+        self.assertIn('cloud("source-consent").checked', cloud_script)
+        self.assertIn('cloud("archive-consent").checked', cloud_script)
+        self.assertNotIn('palabreSaveTranscription(); });', cloud_script)
+
+    def test_public_library_requires_archive_authorization(self):
+        cloud_script = (UI_FILE.parent / "supabase-cloud.js").read_text(encoding="utf-8")
+        public_query = cloud_script.split("async function palabrePublicLibrary")[1]
+        self.assertIn('.eq("archive_authorized",true)', public_query)
+
     def test_local_http_and_api(self):
         with tempfile.TemporaryDirectory() as tmp:
             class TestHandler(WebHandler):
