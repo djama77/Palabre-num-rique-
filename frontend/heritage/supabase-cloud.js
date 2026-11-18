@@ -1,4 +1,4 @@
-// Palabre numérique — archivage automatique privé Supabase.
+// Palabre numérique — archivage privé Supabase sur action explicite.
 "use strict";
 const PALABRE_AUDIO_BUCKET = "palabre-audio";
 const PALABRE_SUPABASE_URL = "https://sdxkawuufsapcscbhfzl.supabase.co";
@@ -33,7 +33,7 @@ async function palabreEnsureAnonymousSession() {
   if (!session || !session.user) throw new Error("La session privée n'a pas pu être créée.");
   palabreUser = session.user;
   cloud("cloud-user").textContent = "Espace privé prêt · connexion automatique";
-  cloudStatus("Votre espace privé est prêt. Les transcriptions seront archivées automatiquement.");
+  cloudStatus("Votre espace privé est prêt. Chaque archivage nécessite une autorisation distincte et une action explicite.");
   await palabreList();
 }
 
@@ -45,7 +45,7 @@ async function palabreSaveTranscription() {
   const title = cloud("transcription-title").value.trim() || ("Transcription du " + new Date().toLocaleString("fr-FR"));
   if (!transcript) { archiveStatus("Aucun texte à enregistrer."); return; }
   if (!file) { archiveStatus("Le fichier audio source est introuvable. Réimportez-le pour archiver la transcription."); return; }
-  if (!cloud("audio-consent").checked) { archiveStatus("Le consentement est nécessaire pour archiver ce témoignage."); return; }
+  if (!cloud("archive-consent").checked) { archiveStatus("Autorisez séparément l’archivage privé avant de sauvegarder ce témoignage."); return; }
   const ext = safeFileExtension(file);
   if (!ext) { archiveStatus("Format audio non pris en charge pour l'archivage."); return; }
   if (file.size > 100 * 1024 * 1024) { archiveStatus("Fichier audio trop volumineux (100 Mo maximum)."); return; }
@@ -77,7 +77,8 @@ async function palabreSaveTranscription() {
           title_so:title.slice(0,300),
           transcript_so:transcript,
           audio_path:path,
-          consent_recorded:true
+          consent_recorded:true,
+          archive_authorized:true
         })
         .select("id")
         .single();
@@ -86,7 +87,7 @@ async function palabreSaveTranscription() {
         throw insertError;
       }
       lastSavedRecordId = inserted.id;
-      archiveStatus("Transcription sauvegardée automatiquement dans vos archives privées.");
+      archiveStatus("Transcription et audio enregistrés dans vos archives privées après votre autorisation.");
     }
     saveButton.textContent = "Enregistrer les corrections";
     saveButton.disabled = true;
@@ -161,6 +162,7 @@ async function palabrePublicLibrary() {
     .eq("status","published")
     .eq("consent_recorded",true)
     .eq("publication_authorized",true)
+    .eq("archive_authorized",true)
     .order("created_at", {ascending:false})
     .limit(100);
   if (error) { status.textContent = "Bibliothèque indisponible : " + error.message; return; }
@@ -176,13 +178,21 @@ cloud("save-transcription").addEventListener("click", palabreSaveTranscription);
 cloud("transcription-result").addEventListener("input", () => {
   const button = cloud("save-transcription");
   button.textContent = lastSavedRecordId ? "Enregistrer les corrections" : "Enregistrer cette transcription";
-  button.disabled = !cloud("transcription-result").value.trim();
+  button.disabled = !cloud("transcription-result").value.trim() || !cloud("archive-consent").checked;
 });
 cloud("transcription-title").addEventListener("input", () => {
-  if (lastSavedRecordId) cloud("save-transcription").disabled = false;
+  if (lastSavedRecordId) cloud("save-transcription").disabled = !cloud("archive-consent").checked;
+});
+cloud("archive-consent").addEventListener("change", () => {
+  cloud("save-transcription").disabled =
+    !cloud("transcription-result").value.trim() || !cloud("archive-consent").checked;
+});
+cloud("audio-file").addEventListener("change", () => {
+  lastSavedRecordId = null;
+  cloud("save-transcription").textContent = "Enregistrer cette transcription";
 });
 cloud("transcribe").addEventListener("click", () => { cloud("save-transcription").disabled = true; });
-window.addEventListener("palabre:transcription-ready", () => { cloud("save-transcription").disabled = false; palabreSaveTranscription(); });
+window.addEventListener("palabre:transcription-ready", () => { cloud("save-transcription").disabled = !cloud("archive-consent").checked; archiveStatus("Transcription prête. Relisez-la, puis autorisez séparément son archivage privé si vous le souhaitez."); });
 palabreDb.auth.onAuthStateChange((_event, session) => {
   if (session && session.user) {
     palabreUser = session.user;
